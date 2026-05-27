@@ -3,6 +3,7 @@
 // ===== STATE =====
 var STATE_KEY = 'resellflow_data';
 var state = loadState();
+var posterUploadedImage = null;
 
 function defaultState() {
   return {
@@ -10,7 +11,10 @@ function defaultState() {
     leads: [],
     reminders: [],
     generations: [],
-    settings: { lang: 'en', theme: 'dark' },
+    settings: { lang: 'en', theme: 'dark', selectedTemplate: 'minimalist', selectedPalette: 'neonglow' },
+    session: null,
+    users: {},
+    currentOTP: null,
     lastSave: Date.now()
   };
 }
@@ -62,6 +66,7 @@ function handleRoute() {
 window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', function() {
   handleRoute();
+  initAuth();
   renderReminders();
   renderLeads();
   renderCatalog();
@@ -502,12 +507,1132 @@ function deleteReminder(id) {
   showToast('Reminder deleted', 'info');
 }
 
-// Poster and Banner Maker
+// ===== AUTH SYSTEM =====
+function initAuth() {
+  if (state.session && state.session.isAuthenticated) {
+    updateAuthUI(true);
+  } else {
+    updateAuthUI(false);
+    showAuthModal();
+  }
+}
+
+function showAuthModal() {
+  var modal = document.getElementById('authModal');
+  modal.classList.add('active');
+  document.getElementById('authState1').style.display = 'block';
+  document.getElementById('authState2').style.display = 'none';
+  document.getElementById('authEmail').value = '';
+  var digits = document.querySelectorAll('.otp-digit');
+  for (var i = 0; i < digits.length; i++) { digits[i].value = ''; }
+}
+
+function hideAuthModal() {
+  document.getElementById('authModal').classList.remove('active');
+}
+
+function sendOTP(email) {
+  if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+    showToast('Please enter a valid email address', 'warning');
+    return;
+  }
+  var otp = '';
+  for (var i = 0; i < 6; i++) { otp += Math.floor(Math.random() * 10); }
+  state.currentOTP = { code: otp, timestamp: Date.now(), email: email };
+  saveState();
+
+  // Show OTP via toast with copy button
+  showOTPToast(otp);
+
+  // Switch to state 2
+  document.getElementById('authState1').style.display = 'none';
+  document.getElementById('authState2').style.display = 'block';
+  document.getElementById('authEmailDisplay').textContent = email;
+  var firstDigit = document.querySelector('.otp-digit[data-index="0"]');
+  if (firstDigit) firstDigit.focus();
+}
+
+function showOTPToast(otp) {
+  var container = document.getElementById('toastContainer');
+  var toast = document.createElement('div');
+  toast.className = 'toast otp-toast info';
+  toast.innerHTML = '<i class="fa-solid fa-key"></i><div><strong>Your OTP is: ' + otp + '</strong><br><small>(simulated)</small></div><button class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText(\'' + otp + '\');showToast(\'OTP copied!\',\'success\')" style="margin-left:8px;white-space:nowrap"><i class="fa-solid fa-copy"></i> Copy</button>';
+  container.appendChild(toast);
+  setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 10000);
+}
+
+function resendOTP() {
+  var email = state.currentOTP ? state.currentOTP.email : '';
+  if (!email) { showAuthModal(); return; }
+  sendOTP(email);
+}
+
+function onOtpInput(el, index) {
+  el.value = el.value.replace(/[^0-9]/g, '');
+  if (el.value.length === 1 && index < 5) {
+    var next = document.querySelector('.otp-digit[data-index="' + (index + 1) + '"]');
+    if (next) next.focus();
+  }
+  // Check if all 6 digits filled
+  var digits = document.querySelectorAll('.otp-digit');
+  var otp = '';
+  for (var i = 0; i < digits.length; i++) { otp += digits[i].value; }
+  if (otp.length === 6) { verifyOTP(otp); }
+}
+
+function onOtpKeydown(e, index) {
+  if (e.key === 'Backspace' && !e.target.value && index > 0) {
+    var prev = document.querySelector('.otp-digit[data-index="' + (index - 1) + '"]');
+    if (prev) { prev.focus(); prev.value = ''; }
+  }
+}
+
+function verifyOTPFromInputs() {
+  var digits = document.querySelectorAll('.otp-digit');
+  var otp = '';
+  for (var i = 0; i < digits.length; i++) { otp += digits[i].value; }
+  if (otp.length < 6) { showToast('Please enter all 6 digits', 'warning'); return; }
+  verifyOTP(otp);
+}
+
+function verifyOTP(enteredOTP) {
+  if (!state.currentOTP) { showToast('No OTP requested. Please try again.', 'error'); return; }
+  var now = Date.now();
+  var elapsed = now - state.currentOTP.timestamp;
+  if (elapsed > 5 * 60 * 1000) {
+    showToast('OTP expired. Please request a new one.', 'error');
+    return;
+  }
+  if (enteredOTP !== state.currentOTP.code) {
+    showToast('Invalid OTP. Please try again.', 'error');
+    var digits = document.querySelectorAll('.otp-digit');
+    for (var i = 0; i < digits.length; i++) { digits[i].value = ''; }
+    var first = document.querySelector('.otp-digit[data-index="0"]');
+    if (first) first.focus();
+    return;
+  }
+  // Success - create user and session
+  var email = state.currentOTP.email;
+  var namePart = email.split('@')[0];
+  var name = namePart.charAt(0).toUpperCase() + namePart.slice(1).replace(/[._-]/g, ' ');
+  if (!state.users) state.users = {};
+  state.users[email] = { email: email, name: name };
+  state.session = { email: email, name: name, loginTimestamp: Date.now(), isAuthenticated: true };
+  state.currentOTP = null;
+  saveState();
+  hideAuthModal();
+  updateAuthUI(true);
+  showToast('Welcome, ' + name + '!', 'success');
+}
+
+function signOut() {
+  state.session = null;
+  saveState();
+  updateAuthUI(false);
+  showToast('Signed out successfully', 'info');
+}
+
+function updateAuthUI(isLoggedIn) {
+  var loggedOut = document.getElementById('sidebarLoggedOut');
+  var logged_in = document.getElementById('sidebarLoggedIn');
+  if (isLoggedIn && state.session) {
+    loggedOut.style.display = 'none';
+    logged_in.style.display = 'flex';
+    document.getElementById('userAvatar').textContent = state.session.name.charAt(0).toUpperCase();
+    document.getElementById('userName').textContent = state.session.name;
+  } else {
+    loggedOut.style.display = 'block';
+    logged_in.style.display = 'none';
+  }
+}
+
+function checkAuth() {
+  if (!state.session || !state.session.isAuthenticated) {
+    showAuthModal();
+    return false;
+  }
+  return true;
+}
+
+// ===== POSTER TEMPLATE & PALETTE SYSTEM =====
+var COLOR_PALETTES = {
+  neonglow: { bg: '#1a0033', primary: '#6C5CE7', secondary: '#00CEFF', accent: '#FD79A8', text: '#FFFFFF' },
+  pasteldream: { bg: '#FFF0F5', primary: '#DDA0DD', secondary: '#B0E0E6', accent: '#FFB6C1', text: '#4A4A4A' },
+  darkluxe: { bg: '#1A1A2E', primary: '#E6B800', secondary: '#C0C0C0', accent: '#FFFFFF', text: '#F5F5F5' },
+  earthytones: { bg: '#F5E6D3', primary: '#8B4513', secondary: '#6B8E23', accent: '#CD853F', text: '#3E2723' },
+  vibrantpop: { bg: '#FF6B6B', primary: '#FFE66D', secondary: '#4ECDC4', accent: '#FF6B6B', text: '#FFFFFF' }
+};
+
+function selectTemplate(template, el) {
+  if (!state.settings) state.settings = {};
+  state.settings.selectedTemplate = template;
+  saveState();
+  document.querySelectorAll('.template-card').forEach(function(c) { c.classList.remove('selected'); });
+  if (el) el.classList.add('selected');
+}
+
+function selectPalette(palette, el) {
+  if (!state.settings) state.settings = {};
+  state.settings.selectedPalette = palette;
+  saveState();
+  document.querySelectorAll('.palette-swatch').forEach(function(c) { c.classList.remove('selected'); });
+  if (el) el.classList.add('selected');
+}
+
+function handlePosterImageUpload(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    posterUploadedImage = new Image();
+    posterUploadedImage.onload = function() {
+      document.getElementById('uploadPlaceholder').style.display = 'none';
+      document.getElementById('uploadPreview').style.display = 'flex';
+      document.getElementById('posterImagePreview').src = e.target.result;
+    };
+    posterUploadedImage.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePosterImage() {
+  posterUploadedImage = null;
+  document.getElementById('uploadPlaceholder').style.display = 'flex';
+  document.getElementById('uploadPreview').style.display = 'none';
+  document.getElementById('posterImageInput').value = '';
+}
+
+// Drawing helpers
+function drawGradientBg(ctx, palette, width, height) {
+  var grad = ctx.createLinearGradient(0, 0, width, height);
+  grad.addColorStop(0, palette.bg);
+  grad.addColorStop(0.4, palette.primary);
+  grad.addColorStop(0.7, palette.secondary);
+  grad.addColorStop(1, palette.accent);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, height);
+}
+
+function drawDecorations(ctx, template, width, height, palette) {
+  ctx.save();
+  if (template === 'minimalist') {
+    // Concentric circles with subtle opacity
+    ctx.globalAlpha = 0.06;
+    ctx.strokeStyle = palette.primary;
+    ctx.lineWidth = 1;
+    for (var i = 0; i < 8; i++) {
+      ctx.beginPath();
+      ctx.arc(width * 0.75 + i * 14, height * 0.25, 30 + i * 18, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // Subtle dot grid in bottom-right
+    ctx.globalAlpha = 0.04;
+    ctx.fillStyle = palette.primary;
+    for (var dx = 0; dx < 6; dx++) {
+      for (var dy = 0; dy < 6; dy++) {
+        ctx.beginPath();
+        ctx.arc(width * 0.6 + dx * 16, height * 0.7 + dy * 16, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  } else if (template === 'boldsale') {
+    // Star burst decorations
+    ctx.globalAlpha = 0.15;
+    ctx.strokeStyle = palette.text;
+    ctx.lineWidth = 2;
+    var burstPoints = [[width * 0.12, height * 0.12], [width * 0.88, height * 0.75], [width * 0.5, height * 0.9]];
+    for (var b = 0; b < burstPoints.length; b++) {
+      var bx = burstPoints[b][0], by = burstPoints[b][1];
+      var numRays = 12;
+      for (var r = 0; r < numRays; r++) {
+        var angle = (r / numRays) * Math.PI * 2;
+        var innerR = 8;
+        var outerR = 28;
+        ctx.beginPath();
+        ctx.moveTo(bx + Math.cos(angle) * innerR, by + Math.sin(angle) * innerR);
+        ctx.lineTo(bx + Math.cos(angle) * outerR, by + Math.sin(angle) * outerR);
+        ctx.stroke();
+      }
+      // Center dot
+      ctx.fillStyle = palette.text;
+      ctx.beginPath();
+      ctx.arc(bx, by, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Diagonal stripes pattern
+    ctx.globalAlpha = 0.06;
+    ctx.strokeStyle = palette.text;
+    ctx.lineWidth = 3;
+    for (var s = -height; s < width + height; s += 40) {
+      ctx.beginPath();
+      ctx.moveTo(s, 0);
+      ctx.lineTo(s + height, height);
+      ctx.stroke();
+    }
+  } else if (template === 'elegant') {
+    // Corner ornaments with bezier curves
+    ctx.globalAlpha = 0.25;
+    ctx.strokeStyle = palette.secondary;
+    ctx.lineWidth = 1.5;
+    var orn = 40;
+    // Top-left ornament
+    ctx.beginPath();
+    ctx.moveTo(width * 0.04, height * 0.04 + orn);
+    ctx.quadraticCurveTo(width * 0.04, height * 0.04, width * 0.04 + orn, height * 0.04);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(width * 0.04 + 10, height * 0.04);
+    ctx.quadraticCurveTo(width * 0.04, height * 0.04, width * 0.04, height * 0.04 + 10);
+    ctx.stroke();
+    // Top-right ornament
+    ctx.beginPath();
+    ctx.moveTo(width * 0.96 - orn, height * 0.04);
+    ctx.quadraticCurveTo(width * 0.96, height * 0.04, width * 0.96, height * 0.04 + orn);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(width * 0.96, height * 0.04 + 10);
+    ctx.quadraticCurveTo(width * 0.96, height * 0.04, width * 0.96 - 10, height * 0.04);
+    ctx.stroke();
+    // Bottom-left ornament
+    ctx.beginPath();
+    ctx.moveTo(width * 0.04, height * 0.96 - orn);
+    ctx.quadraticCurveTo(width * 0.04, height * 0.96, width * 0.04 + orn, height * 0.96);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(width * 0.04 + 10, height * 0.96);
+    ctx.quadraticCurveTo(width * 0.04, height * 0.96, width * 0.04, height * 0.96 - 10);
+    ctx.stroke();
+    // Bottom-right ornament
+    ctx.beginPath();
+    ctx.moveTo(width * 0.96 - orn, height * 0.96);
+    ctx.quadraticCurveTo(width * 0.96, height * 0.96, width * 0.96, height * 0.96 - orn);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(width * 0.96, height * 0.96 - 10);
+    ctx.quadraticCurveTo(width * 0.96, height * 0.96, width * 0.96 - 10, height * 0.96);
+    ctx.stroke();
+    // Small diamond accents at corners
+    ctx.fillStyle = palette.secondary;
+    ctx.globalAlpha = 0.15;
+    var dSize = 6;
+    [[width * 0.06, height * 0.06], [width * 0.94, height * 0.06], [width * 0.06, height * 0.94], [width * 0.94, height * 0.94]].forEach(function(pt) {
+      ctx.beginPath();
+      ctx.moveTo(pt[0], pt[1] - dSize);
+      ctx.lineTo(pt[0] + dSize, pt[1]);
+      ctx.lineTo(pt[0], pt[1] + dSize);
+      ctx.lineTo(pt[0] - dSize, pt[1]);
+      ctx.closePath();
+      ctx.fill();
+    });
+  } else if (template === 'festival') {
+    // Decorative border pattern
+    ctx.globalAlpha = 0.2;
+    ctx.strokeStyle = palette.text;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([12, 6]);
+    ctx.strokeRect(width * 0.035, height * 0.035, width * 0.93, height * 0.93);
+    ctx.setLineDash([]);
+    // Sparkle/dot decorations scattered
+    var sparkleColors = [palette.primary, palette.secondary, palette.accent, palette.text];
+    for (var k = 0; k < 60; k++) {
+      ctx.fillStyle = sparkleColors[k % sparkleColors.length];
+      ctx.globalAlpha = 0.1 + Math.random() * 0.15;
+      var sx = Math.random() * width;
+      var sy = Math.random() * height;
+      var sr = 1.5 + Math.random() * 3.5;
+      // Draw 4-pointed sparkle
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - sr * 2);
+      ctx.quadraticCurveTo(sx, sy, sx + sr * 2, sy);
+      ctx.quadraticCurveTo(sx, sy, sx, sy + sr * 2);
+      ctx.quadraticCurveTo(sx, sy, sx - sr * 2, sy);
+      ctx.quadraticCurveTo(sx, sy, sx, sy - sr * 2);
+      ctx.fill();
+    }
+    // Small circle dots
+    for (var d = 0; d < 30; d++) {
+      ctx.fillStyle = sparkleColors[d % sparkleColors.length];
+      ctx.globalAlpha = 0.12;
+      ctx.beginPath();
+      ctx.arc(Math.random() * width, Math.random() * height, 2 + Math.random() * 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (template === 'productshowcase') {
+    // Subtle line pattern on right side
+    ctx.globalAlpha = 0.05;
+    ctx.strokeStyle = palette.text;
+    ctx.lineWidth = 1;
+    for (var li = 0; li < 12; li++) {
+      ctx.beginPath();
+      ctx.moveTo(width * 0.52, height * 0.15 + li * (height * 0.06));
+      ctx.lineTo(width * 0.95, height * 0.15 + li * (height * 0.06));
+      ctx.stroke();
+    }
+    // Small geometric accents
+    ctx.globalAlpha = 0.08;
+    ctx.fillStyle = palette.primary;
+    ctx.beginPath();
+    ctx.arc(width * 0.92, height * 0.08, 20, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = palette.secondary;
+    ctx.beginPath();
+    ctx.arc(width * 0.55, height * 0.92, 15, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (template === 'socialstory') {
+    // Soft bokeh circles
+    ctx.globalAlpha = 0.06;
+    for (var m = 0; m < 8; m++) {
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(Math.random() * width, Math.random() * height * 0.55, 20 + Math.random() * 50, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Subtle glow effect near center
+    var glowGrad = ctx.createRadialGradient(width / 2, height * 0.3, 0, width / 2, height * 0.3, width * 0.4);
+    glowGrad.addColorStop(0, 'rgba(255,255,255,0.08)');
+    glowGrad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = glowGrad;
+    ctx.fillRect(0, 0, width, height * 0.6);
+  } else if (template === 'quotecard') {
+    // Large soft circles
+    ctx.globalAlpha = 0.05;
+    ctx.fillStyle = palette.primary;
+    ctx.beginPath();
+    ctx.arc(width * 0.8, height * 0.2, width * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(width * 0.15, height * 0.85, width * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+    // Horizontal line accents
+    ctx.globalAlpha = 0.1;
+    ctx.strokeStyle = palette.primary;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(width * 0.2, height * 0.7);
+    ctx.lineTo(width * 0.8, height * 0.7);
+    ctx.stroke();
+    // Small decorative dots
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = palette.primary;
+    for (var qi = 0; qi < 5; qi++) {
+      ctx.beginPath();
+      ctx.arc(width * 0.3 + qi * (width * 0.1), height * 0.72, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (template === 'eventflyer') {
+    // Corner triangles
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = palette.primary;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(width * 0.12, 0);
+    ctx.lineTo(0, height * 0.12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = palette.secondary;
+    ctx.beginPath();
+    ctx.moveTo(width, height);
+    ctx.lineTo(width * 0.88, height);
+    ctx.lineTo(width, height * 0.88);
+    ctx.closePath();
+    ctx.fill();
+    // Additional geometric accents
+    ctx.globalAlpha = 0.1;
+    ctx.fillStyle = palette.accent;
+    ctx.beginPath();
+    ctx.moveTo(width, 0);
+    ctx.lineTo(width * 0.88, 0);
+    ctx.lineTo(width, height * 0.12);
+    ctx.closePath();
+    ctx.fill();
+    // Dot pattern along bottom
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = palette.text;
+    for (var ei = 0; ei < 12; ei++) {
+      ctx.beginPath();
+      ctx.arc(width * 0.1 + ei * (width * 0.07), height * 0.92, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Horizontal line accent
+    ctx.globalAlpha = 0.2;
+    ctx.strokeStyle = palette.text;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(width * 0.1, height * 0.35);
+    ctx.lineTo(width * 0.9, height * 0.35);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawTypography(ctx, text, x, y, options) {
+  if (!text) return;
+  options = options || {};
+  var font = options.font || 'Inter';
+  var weight = options.weight || '600';
+  var size = options.size || 24;
+  var color = options.color || '#ffffff';
+  var align = options.align || 'center';
+  var maxWidth = options.maxWidth || 400;
+  var lineHeight = options.lineHeight || 1.3;
+  var shadow = options.shadow || false;
+
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
+
+  // Auto-fit font size
+  var testSize = size;
+  ctx.font = weight + ' ' + testSize + 'px ' + font + ', sans-serif';
+  while (ctx.measureText(text).width > maxWidth && testSize > 10) {
+    testSize -= 1;
+    ctx.font = weight + ' ' + testSize + 'px ' + font + ', sans-serif';
+  }
+
+  if (shadow) {
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+  }
+
+  // Multi-line wrapping
+  var words = text.split(' ');
+  var lines = [];
+  var currentLine = '';
+  for (var i = 0; i < words.length; i++) {
+    var testLine = currentLine ? currentLine + ' ' + words[i] : words[i];
+    if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = words[i];
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+
+  var totalHeight = lines.length * testSize * lineHeight;
+  var startY = y - totalHeight / 2 + testSize / 2;
+  for (var j = 0; j < lines.length; j++) {
+    ctx.fillText(lines[j], x, startY + j * testSize * lineHeight);
+  }
+  ctx.restore();
+}
+
+function drawImageRounded(ctx, image, x, y, width, height, borderRadius) {
+  ctx.save();
+  borderRadius = Math.max(0, borderRadius || 0);
+  // Shadow
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 16;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 4;
+  ctx.beginPath();
+  ctx.moveTo(x + borderRadius, y);
+  ctx.lineTo(x + width - borderRadius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + borderRadius);
+  ctx.lineTo(x + width, y + height - borderRadius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - borderRadius, y + height);
+  ctx.lineTo(x + borderRadius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - borderRadius);
+  ctx.lineTo(x, y + borderRadius);
+  ctx.quadraticCurveTo(x, y, x + borderRadius, y);
+  ctx.closePath();
+  ctx.clip();
+  // Draw image maintaining aspect ratio
+  var imgRatio = image.width / image.height;
+  var boxRatio = width / height;
+  var sx = 0, sy = 0, sw = image.width, sh = image.height;
+  if (imgRatio > boxRatio) {
+    sw = image.height * boxRatio;
+    sx = (image.width - sw) / 2;
+  } else {
+    sh = image.width / boxRatio;
+    sy = (image.height - sh) / 2;
+  }
+  ctx.drawImage(image, sx, sy, sw, sh, x, y, width, height);
+  ctx.restore();
+}
+
+// Rounded rectangle helper
+function roundRect(ctx, x, y, width, height, radius) {
+  radius = Math.max(0, Math.min(radius, Math.min(width, height) / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+// Alias for drawImageRounded - matches spec signature drawImage(ctx, image, x, y, width, height, borderRadius)
+function drawImage(ctx, image, x, y, width, height, borderRadius) {
+  drawImageRounded(ctx, image, x, y, width, height, borderRadius);
+}
+
+// 8 Template Drawing Functions
+function drawMinimalist(canvas, ctx, data) {
+  var w = canvas.width, h = canvas.height;
+  var p = data.palette;
+  // Clean white/light background
+  ctx.fillStyle = '#FAFAFA';
+  ctx.fillRect(0, 0, w, h);
+  drawDecorations(ctx, 'minimalist', w, h, p);
+  // Subtle accent line on left
+  ctx.fillStyle = p.primary;
+  ctx.fillRect(w * 0.1, h * 0.35, w * 0.008, h * 0.3);
+  // Thin horizontal accent below headline area
+  ctx.save();
+  ctx.globalAlpha = 0.15;
+  ctx.fillStyle = p.primary;
+  ctx.fillRect(w * 0.15, h * 0.52, w * 0.35, 1);
+  ctx.restore();
+  // Badge (small, top-left)
+  if (data.badge) {
+    var bx = w * 0.1, by = h * 0.12;
+    ctx.font = '600 11px Poppins, sans-serif';
+    var badgeW = Math.max(ctx.measureText(data.badge).width + 24, 60);
+    // Rounded rect badge
+    ctx.fillStyle = p.primary;
+    roundRect(ctx, bx, by, badgeW, 28, 6);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.badge, bx + 12, by + 14);
+  }
+  // Headline - thin, elegant
+  drawTypography(ctx, data.headline, w * 0.55, h * 0.4, { font: 'Inter', weight: '300', size: Math.max(24, w * 0.07), color: '#1a1a1a', align: 'center', maxWidth: w * 0.7 });
+  // Subheadline
+  drawTypography(ctx, data.subhead, w * 0.55, h * 0.55, { font: 'Poppins', weight: '400', size: Math.max(14, w * 0.035), color: '#666666', align: 'center', maxWidth: w * 0.65 });
+  // Body text
+  if (data.body) {
+    drawTypography(ctx, data.body, w * 0.55, h * 0.68, { font: 'Poppins', weight: '300', size: Math.max(11, w * 0.022), color: '#999999', align: 'center', maxWidth: w * 0.55 });
+  }
+  // CTA button
+  if (data.cta) {
+    ctx.fillStyle = p.primary;
+    var ctaY = h * 0.82;
+    ctx.font = '600 ' + Math.max(12, w * 0.025) + 'px Montserrat, sans-serif';
+    var ctaW = Math.max(ctx.measureText(data.cta).width + 44, 110);
+    var ctaX = w * 0.55 - ctaW / 2;
+    roundRect(ctx, ctaX, ctaY, ctaW, 44, 8);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.cta, w * 0.55, ctaY + 22);
+  }
+}
+
+function drawBoldSale(canvas, ctx, data) {
+  var w = canvas.width, h = canvas.height;
+  var p = data.palette;
+  // Vibrant gradient background
+  drawGradientBg(ctx, p, w, h);
+  drawDecorations(ctx, 'boldsale', w, h, p);
+  // Diagonal stripe with badge text
+  if (data.badge) {
+    ctx.save();
+    ctx.translate(w * 0.85, 0);
+    ctx.rotate(Math.PI / 4);
+    var stripeW = 180;
+    ctx.fillStyle = p.accent;
+    ctx.fillRect(-stripeW / 2, -10, stripeW, 38);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 13px Montserrat, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.badge, 0, 9);
+    ctx.restore();
+  }
+  // Large bold headline
+  drawTypography(ctx, data.headline, w / 2, h * 0.3, { font: 'Montserrat', weight: '800', size: Math.max(32, w * 0.1), color: p.text, align: 'center', maxWidth: w * 0.85, shadow: true });
+  // Subheadline with emphasis
+  drawTypography(ctx, data.subhead, w / 2, h * 0.48, { font: 'Poppins', weight: '600', size: Math.max(18, w * 0.05), color: p.text, align: 'center', maxWidth: w * 0.8, shadow: true });
+  // Price/CTA prominent box
+  if (data.body) {
+    drawTypography(ctx, data.body, w / 2, h * 0.62, { font: 'Poppins', weight: '400', size: Math.max(12, w * 0.025), color: p.text, align: 'center', maxWidth: w * 0.7, shadow: true });
+  }
+  // CTA button with contrasting background
+  if (data.cta) {
+    ctx.fillStyle = p.text;
+    var ctaY = h * 0.78;
+    ctx.font = '700 ' + Math.max(14, w * 0.035) + 'px Montserrat, sans-serif';
+    var ctaW = Math.max(ctx.measureText(data.cta).width + 48, 120);
+    var ctaX = w / 2 - ctaW / 2;
+    roundRect(ctx, ctaX, ctaY, ctaW, 52, 8);
+    ctx.fill();
+    ctx.fillStyle = p.bg;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.cta, w / 2, ctaY + 26);
+  }
+}
+
+function drawElegant(canvas, ctx, data) {
+  var w = canvas.width, h = canvas.height;
+  var p = data.palette;
+  // Soft gradient background
+  var grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, p.bg);
+  grad.addColorStop(1, p.primary);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+  drawDecorations(ctx, 'elegant', w, h, p);
+  // Badge in elegant style
+  if (data.badge) {
+    ctx.save();
+    ctx.font = '400 13px Playfair Display, serif';
+    ctx.fillStyle = p.secondary;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.letterSpacing = '3px';
+    ctx.fillText('\u2014 ' + data.badge + ' \u2014', w / 2, h * 0.16);
+    ctx.restore();
+  }
+  // Thin decorative divider line above headline
+  ctx.save();
+  ctx.strokeStyle = p.secondary;
+  ctx.globalAlpha = 0.5;
+  ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(w * 0.3, h * 0.24); ctx.lineTo(w * 0.7, h * 0.24); ctx.stroke();
+  ctx.restore();
+  // Headline (serif font)
+  drawTypography(ctx, data.headline, w / 2, h * 0.37, { font: 'Playfair Display', weight: '700', size: Math.max(26, w * 0.07), color: p.text, align: 'center', maxWidth: w * 0.75 });
+  // Thin decorative divider line below headline
+  ctx.save();
+  ctx.strokeStyle = p.secondary;
+  ctx.globalAlpha = 0.5;
+  ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(w * 0.38, h * 0.49); ctx.lineTo(w * 0.62, h * 0.49); ctx.stroke();
+  // Small diamond in center of divider
+  ctx.fillStyle = p.secondary;
+  ctx.globalAlpha = 0.4;
+  var dmx = w / 2, dmy = h * 0.49, dms = 4;
+  ctx.beginPath();
+  ctx.moveTo(dmx, dmy - dms); ctx.lineTo(dmx + dms, dmy);
+  ctx.lineTo(dmx, dmy + dms); ctx.lineTo(dmx - dms, dmy);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+  // Subheadline
+  drawTypography(ctx, data.subhead, w / 2, h * 0.58, { font: 'Poppins', weight: '400', size: Math.max(14, w * 0.03), color: p.text, align: 'center', maxWidth: w * 0.65 });
+  // Body text
+  if (data.body) {
+    drawTypography(ctx, data.body, w / 2, h * 0.7, { font: 'Poppins', weight: '300', size: Math.max(11, w * 0.02), color: p.text, align: 'center', maxWidth: w * 0.55 });
+  }
+  // CTA with refined outline style
+  if (data.cta) {
+    ctx.save();
+    ctx.strokeStyle = p.text;
+    ctx.lineWidth = 1.5;
+    ctx.font = '600 ' + Math.max(12, w * 0.025) + 'px Montserrat, sans-serif';
+    var ctaW = Math.max(ctx.measureText(data.cta).width + 44, 110);
+    var ctaX = w / 2 - ctaW / 2;
+    var ctaY = h * 0.82;
+    roundRect(ctx, ctaX, ctaY, ctaW, 42, 4);
+    ctx.stroke();
+    ctx.fillStyle = p.text;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.cta, w / 2, ctaY + 21);
+    ctx.restore();
+  }
+}
+
+function drawFestival(canvas, ctx, data) {
+  var w = canvas.width, h = canvas.height;
+  var p = data.palette;
+  // Rich gradient background
+  drawGradientBg(ctx, p, w, h);
+  drawDecorations(ctx, 'festival', w, h, p);
+  // Decorative border pattern
+  ctx.save();
+  ctx.strokeStyle = p.text;
+  ctx.globalAlpha = 0.3;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([12, 6]);
+  ctx.strokeRect(w * 0.04, h * 0.04, w * 0.92, h * 0.92);
+  ctx.setLineDash([]);
+  ctx.restore();
+  // Festive ribbons at top
+  ctx.save();
+  // Main ribbon
+  ctx.fillStyle = p.accent;
+  ctx.globalAlpha = 0.85;
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.07);
+  ctx.lineTo(w, h * 0.07);
+  ctx.lineTo(w, h * 0.125);
+  ctx.lineTo(0, h * 0.125);
+  ctx.closePath();
+  ctx.fill();
+  // Ribbon fold left
+  ctx.fillStyle = p.secondary;
+  ctx.globalAlpha = 0.7;
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.07);
+  ctx.lineTo(w * 0.02, h * 0.07);
+  ctx.lineTo(0, h * 0.09);
+  ctx.closePath();
+  ctx.fill();
+  // Ribbon fold right
+  ctx.beginPath();
+  ctx.moveTo(w, h * 0.07);
+  ctx.lineTo(w * 0.98, h * 0.07);
+  ctx.lineTo(w, h * 0.09);
+  ctx.closePath();
+  ctx.fill();
+  // Badge on ribbon
+  if (data.badge) {
+    ctx.font = '700 12px Montserrat, sans-serif';
+    ctx.fillStyle = p.text;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.globalAlpha = 1;
+    ctx.fillText(data.badge, w / 2, h * 0.098);
+  }
+  ctx.restore();
+  // Headline with shadow
+  ctx.save();
+  ctx.fillStyle = p.text;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '800 ' + Math.max(28, w * 0.08) + 'px Poppins, sans-serif';
+  ctx.shadowColor = 'rgba(0,0,0,0.35)';
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetX = 3;
+  ctx.shadowOffsetY = 3;
+  ctx.fillText(data.headline, w / 2, h * 0.32);
+  ctx.restore();
+  // Subheadline
+  drawTypography(ctx, data.subhead, w / 2, h * 0.48, { font: 'Poppins', weight: '500', size: Math.max(16, w * 0.04), color: p.text, align: 'center', maxWidth: w * 0.8, shadow: true });
+  // Body
+  if (data.body) {
+    drawTypography(ctx, data.body, w / 2, h * 0.62, { font: 'Poppins', weight: '400', size: Math.max(12, w * 0.025), color: p.text, align: 'center', maxWidth: w * 0.7, shadow: true });
+  }
+  // CTA button
+  if (data.cta) {
+    ctx.fillStyle = p.accent;
+    var ctaY = h * 0.76;
+    ctx.font = '700 ' + Math.max(14, w * 0.03) + 'px Montserrat, sans-serif';
+    var ctaW = Math.max(ctx.measureText(data.cta).width + 44, 110);
+    roundRect(ctx, w / 2 - ctaW / 2, ctaY, ctaW, 48, 8);
+    ctx.fill();
+    ctx.fillStyle = p.bg;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.cta, w / 2, ctaY + 24);
+  }
+}
+
+function drawProductShowcase(canvas, ctx, data) {
+  var w = canvas.width, h = canvas.height;
+  var p = data.palette;
+  // Split layout - white left, colored right
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = p.bg;
+  ctx.fillRect(w * 0.5, 0, w * 0.5, h);
+  drawDecorations(ctx, 'productshowcase', w, h, p);
+  // Vertical divider line
+  ctx.save();
+  ctx.strokeStyle = p.primary;
+  ctx.globalAlpha = 0.2;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.5, h * 0.08);
+  ctx.lineTo(w * 0.5, h * 0.92);
+  ctx.stroke();
+  ctx.restore();
+  // Product image on left with rounded corners and shadow
+  if (data.image) {
+    drawImageRounded(ctx, data.image, w * 0.06, h * 0.12, w * 0.4, h * 0.68, 16);
+  } else {
+    // Placeholder with icon
+    ctx.save();
+    ctx.fillStyle = '#f0f0f0';
+    roundRect(ctx, w * 0.06, h * 0.12, w * 0.4, h * 0.68, 16);
+    ctx.fill();
+    ctx.strokeStyle = '#dddddd';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 4]);
+    roundRect(ctx, w * 0.06, h * 0.12, w * 0.4, h * 0.68, 16);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#cccccc';
+    ctx.font = '400 14px Poppins, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Product Image', w * 0.26, h * 0.45);
+    ctx.restore();
+  }
+  // Badge on right side
+  if (data.badge) {
+    ctx.fillStyle = p.primary;
+    var bx = w * 0.56, by = h * 0.08;
+    ctx.font = '700 11px Montserrat, sans-serif';
+    var bW = Math.max(ctx.measureText(data.badge).width + 18, 50);
+    roundRect(ctx, bx, by, bW, 24, 5);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.badge, bx + 9, by + 12);
+  }
+  // Text on right side
+  drawTypography(ctx, data.headline, w * 0.75, h * 0.3, { font: 'Montserrat', weight: '700', size: Math.max(20, w * 0.04), color: p.text, align: 'center', maxWidth: w * 0.38 });
+  // Thin separator
+  ctx.save();
+  ctx.fillStyle = p.primary;
+  ctx.globalAlpha = 0.3;
+  ctx.fillRect(w * 0.58, h * 0.38, w * 0.34, 2);
+  ctx.restore();
+  drawTypography(ctx, data.subhead, w * 0.75, h * 0.46, { font: 'Poppins', weight: '400', size: Math.max(13, w * 0.025), color: p.text, align: 'center', maxWidth: w * 0.35 });
+  if (data.body) {
+    drawTypography(ctx, data.body, w * 0.75, h * 0.58, { font: 'Poppins', weight: '300', size: Math.max(11, w * 0.02), color: p.text, align: 'center', maxWidth: w * 0.35 });
+  }
+  if (data.cta) {
+    ctx.fillStyle = p.primary;
+    var ctaY = h * 0.72;
+    ctx.font = '600 ' + Math.max(12, w * 0.022) + 'px Montserrat, sans-serif';
+    var ctaW = Math.max(ctx.measureText(data.cta).width + 34, 90);
+    roundRect(ctx, w * 0.75 - ctaW / 2, ctaY, ctaW, 40, 6);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.cta, w * 0.75, ctaY + 20);
+  }
+}
+
+function drawSocialStory(canvas, ctx, data) {
+  var w = canvas.width, h = canvas.height;
+  var p = data.palette;
+  // Full gradient background
+  drawGradientBg(ctx, p, w, h);
+  drawDecorations(ctx, 'socialstory', w, h, p);
+  // Image overlay area (top portion with gradient)
+  if (data.image) {
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.drawImage(data.image, 0, 0, w, h * 0.65);
+    ctx.restore();
+  }
+  // Gradient overlay on image
+  ctx.save();
+  var overlayGrad = ctx.createLinearGradient(0, h * 0.35, 0, h * 0.65);
+  overlayGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  overlayGrad.addColorStop(1, 'rgba(0,0,0,0.65)');
+  ctx.fillStyle = overlayGrad;
+  ctx.fillRect(0, h * 0.35, w, h * 0.3);
+  ctx.restore();
+  // Glassmorphism panel at bottom
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  var gp = 12; // glass panel radius
+  ctx.beginPath();
+  ctx.moveTo(w * 0.04 + gp, h * 0.56);
+  ctx.lineTo(w * 0.96 - gp, h * 0.56);
+  ctx.quadraticCurveTo(w * 0.96, h * 0.56, w * 0.96, h * 0.56 + gp);
+  ctx.lineTo(w * 0.96, h * 0.93 - gp);
+  ctx.quadraticCurveTo(w * 0.96, h * 0.93, w * 0.96 - gp, h * 0.93);
+  ctx.lineTo(w * 0.04 + gp, h * 0.93);
+  ctx.quadraticCurveTo(w * 0.04, h * 0.93, w * 0.04, h * 0.93 - gp);
+  ctx.lineTo(w * 0.04, h * 0.56 + gp);
+  ctx.quadraticCurveTo(w * 0.04, h * 0.56, w * 0.04 + gp, h * 0.56);
+  ctx.closePath();
+  ctx.fill();
+  // Glass border
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+  // Username-style subheadline
+  if (data.subhead) {
+    drawTypography(ctx, '@' + data.subhead.replace(/\s+/g, '').toLowerCase(), w / 2, h * 0.61, { font: 'Poppins', weight: '400', size: Math.max(11, w * 0.025), color: 'rgba(255,255,255,0.7)', align: 'center', maxWidth: w * 0.8 });
+  }
+  // Headline on glass panel
+  drawTypography(ctx, data.headline, w / 2, h * 0.72, { font: 'Montserrat', weight: '700', size: Math.max(22, w * 0.06), color: '#ffffff', align: 'center', maxWidth: w * 0.8, shadow: true });
+  // Body on glass panel
+  if (data.body) {
+    drawTypography(ctx, data.body, w / 2, h * 0.81, { font: 'Poppins', weight: '300', size: Math.max(10, w * 0.02), color: 'rgba(255,255,255,0.8)', align: 'center', maxWidth: w * 0.75 });
+  }
+  // CTA button
+  if (data.cta) {
+    ctx.fillStyle = p.primary;
+    var ctaY = h * 0.87;
+    ctx.font = '600 ' + Math.max(12, w * 0.025) + 'px Montserrat, sans-serif';
+    var ctaW = Math.max(ctx.measureText(data.cta).width + 34, 90);
+    roundRect(ctx, w / 2 - ctaW / 2, ctaY, ctaW, 36, 18);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.cta, w / 2, ctaY + 18);
+  }
+}
+
+function drawQuoteCard(canvas, ctx, data) {
+  var w = canvas.width, h = canvas.height;
+  var p = data.palette;
+  // Dark/minimal background
+  ctx.fillStyle = p.bg;
+  ctx.fillRect(0, 0, w, h);
+  drawDecorations(ctx, 'quotecard', w, h, p);
+  // Large quotation mark graphic
+  ctx.save();
+  ctx.fillStyle = p.primary;
+  ctx.globalAlpha = 0.2;
+  ctx.font = '700 ' + Math.max(120, w * 0.3) + 'px Playfair Display, serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('\u201C', w / 2, h * 0.22);
+  ctx.restore();
+  // Quote text (body or headline) - centered italic
+  var quoteText = data.body || data.headline;
+  drawTypography(ctx, quoteText, w / 2, h * 0.44, { font: 'Playfair Display', weight: '400', size: Math.max(18, w * 0.04), color: p.text, align: 'center', maxWidth: w * 0.7 });
+  // Thin decorative line
+  ctx.save();
+  ctx.fillStyle = p.primary;
+  ctx.globalAlpha = 0.3;
+  ctx.fillRect(w / 2 - 30, h * 0.56, 60, 2);
+  ctx.restore();
+  // Author / subheadline below
+  if (data.subhead) {
+    ctx.save();
+    ctx.fillStyle = p.primary;
+    ctx.font = '600 ' + Math.max(12, w * 0.025) + 'px Montserrat, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('\u2014 ' + data.subhead, w / 2, h * 0.63);
+    ctx.restore();
+  }
+  // Badge
+  if (data.badge) {
+    ctx.save();
+    ctx.fillStyle = p.primary;
+    ctx.globalAlpha = 0.8;
+    ctx.font = '600 11px Poppins, sans-serif';
+    var badgeW = Math.max(ctx.measureText(data.badge).width + 20, 50);
+    roundRect(ctx, w / 2 - badgeW / 2, h * 0.72, badgeW, 24, 12);
+    ctx.fill();
+    ctx.fillStyle = p.bg;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.badge, w / 2, h * 0.72 + 12);
+    ctx.restore();
+  }
+  // CTA with outline style
+  if (data.cta) {
+    ctx.save();
+    ctx.strokeStyle = p.primary;
+    ctx.lineWidth = 1.5;
+    ctx.font = '600 ' + Math.max(12, w * 0.022) + 'px Montserrat, sans-serif';
+    var ctaW = Math.max(ctx.measureText(data.cta).width + 44, 110);
+    roundRect(ctx, w / 2 - ctaW / 2, h * 0.82, ctaW, 40, 6);
+    ctx.stroke();
+    ctx.fillStyle = p.text;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.cta, w / 2, h * 0.82 + 20);
+    ctx.restore();
+  }
+}
+
+function drawEventFlyer(canvas, ctx, data) {
+  var w = canvas.width, h = canvas.height;
+  var p = data.palette;
+  // Full gradient background
+  drawGradientBg(ctx, p, w, h);
+  drawDecorations(ctx, 'eventflyer', w, h, p);
+  // Bold geometric header block
+  ctx.save();
+  ctx.fillStyle = p.primary;
+  ctx.globalAlpha = 0.88;
+  ctx.fillRect(0, 0, w, h * 0.28);
+  ctx.restore();
+  // Accent line below header block
+  ctx.save();
+  ctx.fillStyle = p.accent;
+  ctx.globalAlpha = 0.9;
+  ctx.fillRect(0, h * 0.28, w, 4);
+  ctx.restore();
+  // Badge in header
+  if (data.badge) {
+    ctx.save();
+    ctx.fillStyle = p.accent;
+    ctx.font = '700 12px Montserrat, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.badge, w / 2, h * 0.07);
+    ctx.restore();
+  }
+  // Headline on header block
+  drawTypography(ctx, data.headline, w / 2, h * 0.18, { font: 'Montserrat', weight: '800', size: Math.max(24, w * 0.06), color: p.bg, align: 'center', maxWidth: w * 0.85 });
+  // Structured event details area
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  roundRect(ctx, w * 0.06, h * 0.36, w * 0.88, h * 0.35, 10);
+  ctx.fill();
+  ctx.restore();
+  // Subheadline (event details)
+  drawTypography(ctx, data.subhead, w / 2, h * 0.43, { font: 'Poppins', weight: '500', size: Math.max(16, w * 0.04), color: p.text, align: 'center', maxWidth: w * 0.8, shadow: true });
+  // Body text (structured details)
+  if (data.body) {
+    drawTypography(ctx, data.body, w / 2, h * 0.56, { font: 'Poppins', weight: '400', size: Math.max(12, w * 0.025), color: p.text, align: 'center', maxWidth: w * 0.75, shadow: true });
+  }
+  // Date/time prominent area
+  ctx.save();
+  ctx.fillStyle = p.secondary;
+  ctx.globalAlpha = 0.2;
+  roundRect(ctx, w * 0.15, h * 0.63, w * 0.7, h * 0.06, 4);
+  ctx.fill();
+  ctx.restore();
+  // CTA button
+  if (data.cta) {
+    ctx.fillStyle = p.text;
+    var ctaY = h * 0.75;
+    ctx.font = '700 ' + Math.max(14, w * 0.03) + 'px Montserrat, sans-serif';
+    var ctaW = Math.max(ctx.measureText(data.cta).width + 48, 120);
+    roundRect(ctx, w / 2 - ctaW / 2, ctaY, ctaW, 48, 8);
+    ctx.fill();
+    ctx.fillStyle = p.bg;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.cta, w / 2, ctaY + 24);
+  }
+  // Decorative corner triangles (already in drawDecorations but add extra here for emphasis)
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = p.secondary;
+  ctx.beginPath();
+  ctx.moveTo(0, h); ctx.lineTo(w * 0.15, h); ctx.lineTo(0, h * 0.85);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = p.accent;
+  ctx.beginPath();
+  ctx.moveTo(w, h); ctx.lineTo(w * 0.85, h); ctx.lineTo(w, h * 0.85);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+// Main generatePoster - replaced with premium engine
 function generatePoster() {
   var headline = document.getElementById('ps-headline').value.trim() || 'MEGA SALE';
   var subhead = document.getElementById('ps-subhead').value.trim() || 'Up to 70% Off';
-  var theme = document.getElementById('ps-theme').value;
+  var body = document.getElementById('ps-body').value.trim();
+  var cta = document.getElementById('ps-cta').value.trim();
+  var badge = document.getElementById('ps-badge').value.trim();
   var size = document.getElementById('ps-size').value;
+  var selectedTemplate = (state.settings && state.settings.selectedTemplate) || 'minimalist';
+  var selectedPalette = (state.settings && state.settings.selectedPalette) || 'neonglow';
+  var palette = COLOR_PALETTES[selectedPalette] || COLOR_PALETTES.neonglow;
 
   var canvas = document.getElementById('posterCanvas');
   var ctx = canvas.getContext('2d');
@@ -516,72 +1641,114 @@ function generatePoster() {
     'instagram-post': [600, 600],
     'instagram-story': [360, 640],
     'facebook-cover': [820, 312],
-    'whatsapp-status': [360, 640]
+    'a4': [595, 842]
   };
   var dims = sizeMap[size] || sizeMap['instagram-post'];
-  var w = dims[0];
-  var h = dims[1];
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width = dims[0];
+  canvas.height = dims[1];
 
-  var gradients = {
-    gradient1: ['#6C5CE7', '#a29bfe'],
-    gradient2: ['#0984e3', '#74b9ff'],
-    gradient3: ['#e17055', '#fdcb6e'],
-    gradient4: ['#00B894', '#55efc4'],
-    gradient5: ['#FD79A8', '#fab1a0'],
-    gradient6: ['#2d3436', '#636e72']
+  var data = {
+    headline: headline,
+    subhead: subhead,
+    body: body,
+    cta: cta,
+    badge: badge,
+    palette: palette,
+    image: posterUploadedImage
   };
-  var colors = gradients[theme] || gradients.gradient1;
 
-  var grad = ctx.createLinearGradient(0, 0, w, h);
-  grad.addColorStop(0, colors[0]);
-  grad.addColorStop(1, colors[1]);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, w, h);
+  var templateFns = {
+    minimalist: drawMinimalist,
+    boldsale: drawBoldSale,
+    elegant: drawElegant,
+    festival: drawFestival,
+    productshowcase: drawProductShowcase,
+    socialstory: drawSocialStory,
+    quotecard: drawQuoteCard,
+    eventflyer: drawEventFlyer
+  };
 
-  // Decorative circles
-  ctx.globalAlpha = 0.1;
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.arc(w * 0.8, h * 0.2, Math.min(w, h) * 0.3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(w * 0.2, h * 0.8, Math.min(w, h) * 0.2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 1;
+  var drawFn = templateFns[selectedTemplate] || drawMinimalist;
+  drawFn(canvas, ctx, data);
 
-  // Headline
-  ctx.fillStyle = '#ffffff';
+  // Brand watermark
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '400 ' + Math.max(10, Math.min(canvas.width, canvas.height) * 0.025) + 'px Inter, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  var headlineSize = Math.max(28, Math.min(w, h) * 0.12);
-  ctx.font = '800 ' + headlineSize + 'px Inter, sans-serif';
-  ctx.fillText(headline, w / 2, h * 0.4);
-
-  // Subheadline
-  var subheadSize = Math.max(18, Math.min(w, h) * 0.07);
-  ctx.font = '500 ' + subheadSize + 'px Inter, sans-serif';
-  ctx.fillText(subhead, w / 2, h * 0.55);
-
-  // Brand
-  ctx.font = '400 ' + Math.max(12, Math.min(w, h) * 0.035) + 'px Inter, sans-serif';
-  ctx.globalAlpha = 0.7;
-  ctx.fillText('ResellFlow.ai', w / 2, h * 0.9);
-  ctx.globalAlpha = 1;
+  ctx.fillText('ResellFlow.ai', canvas.width / 2, canvas.height * 0.95);
+  ctx.restore();
 
   document.getElementById('poster-preview-wrap').style.display = 'block';
-  trackGeneration('poster-banner', headline, 'Canvas poster');
-  showToast('Poster generated!', 'success');
+  trackGeneration('poster-banner', headline, 'Premium poster: ' + selectedTemplate);
+  showToast('Poster generated with ' + selectedTemplate + ' template!', 'success');
 }
 
 function downloadPoster() {
   var canvas = document.getElementById('posterCanvas');
+  var selectedTemplate = (state.settings && state.settings.selectedTemplate) || 'minimalist';
+  var selectedPalette = (state.settings && state.settings.selectedPalette) || 'neonglow';
+  var palette = COLOR_PALETTES[selectedPalette] || COLOR_PALETTES.neonglow;
+  var headline = document.getElementById('ps-headline').value.trim() || 'MEGA SALE';
+  var subhead = document.getElementById('ps-subhead').value.trim() || 'Up to 70% Off';
+  var body = document.getElementById('ps-body').value.trim();
+  var cta = document.getElementById('ps-cta').value.trim();
+  var badge = document.getElementById('ps-badge').value.trim();
+  var size = document.getElementById('ps-size').value;
+
+  // Create 2x resolution offscreen canvas
+  var sizeMap = {
+    'instagram-post': [600, 600],
+    'instagram-story': [360, 640],
+    'facebook-cover': [820, 312],
+    'a4': [595, 842]
+  };
+  var dims = sizeMap[size] || sizeMap['instagram-post'];
+  var offCanvas = document.createElement('canvas');
+  offCanvas.width = dims[0] * 2;
+  offCanvas.height = dims[1] * 2;
+  var offCtx = offCanvas.getContext('2d');
+  offCtx.scale(2, 2);
+
+  var data = {
+    headline: headline,
+    subhead: subhead,
+    body: body,
+    cta: cta,
+    badge: badge,
+    palette: palette,
+    image: posterUploadedImage
+  };
+
+  var templateFns = {
+    minimalist: drawMinimalist,
+    boldsale: drawBoldSale,
+    elegant: drawElegant,
+    festival: drawFestival,
+    productshowcase: drawProductShowcase,
+    socialstory: drawSocialStory,
+    quotecard: drawQuoteCard,
+    eventflyer: drawEventFlyer
+  };
+
+  var drawFn = templateFns[selectedTemplate] || drawMinimalist;
+  drawFn(offCanvas, offCtx, data);
+
+  // Brand watermark
+  offCtx.save();
+  offCtx.fillStyle = 'rgba(255,255,255,0.4)';
+  offCtx.font = '400 ' + Math.max(10, Math.min(dims[0], dims[1]) * 0.025) + 'px Inter, sans-serif';
+  offCtx.textAlign = 'center';
+  offCtx.textBaseline = 'middle';
+  offCtx.fillText('ResellFlow.ai', dims[0] / 2, dims[1] * 0.95);
+  offCtx.restore();
+
   var link = document.createElement('a');
-  link.download = 'resellflow-poster.png';
-  link.href = canvas.toDataURL();
+  link.download = 'resellflow-poster-hd.png';
+  link.href = offCanvas.toDataURL('image/png', 1.0);
   link.click();
-  showToast('Poster downloaded!', 'success');
+  showToast('HD Poster downloaded!', 'success');
 }
 
 // Festival Sale Templates
