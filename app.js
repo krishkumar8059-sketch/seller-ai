@@ -12,6 +12,8 @@ function defaultState() {
     reminders: [],
     generations: [],
     settings: { lang: 'en', theme: 'dark', selectedTemplate: 'minimalist', selectedPalette: 'neonglow' },
+    currentOTP: null,
+    users: {},
     session: null,
     lastSave: Date.now()
   };
@@ -65,6 +67,7 @@ window.addEventListener('hashchange', handleRoute);
 window.addEventListener('DOMContentLoaded', function() {
   handleRoute();
   initAuth();
+  bindOtpEventListeners();
   renderReminders();
   renderLeads();
   renderCatalog();
@@ -505,100 +508,380 @@ function deleteReminder(id) {
   showToast('Reminder deleted', 'info');
 }
 
-// ===== AUTH SYSTEM (Firebase Google Auth) =====
+// ===== AUTH SYSTEM (Simulated OTP) =====
+
 function initAuth() {
-  initFirebaseAuth();
+  // Restore session from localStorage
+  if (state.session && state.session.isAuthenticated) {
+    updateAuthUI();
+    hideAuthModal();
+  } else {
+    updateAuthUI();
+    showAuthModal();
+  }
 }
 
 function showAuthModal() {
   var modal = document.getElementById('authModal');
   modal.classList.add('active');
+  // Reset to state 1 (email form)
+  document.getElementById('authState1').style.display = 'block';
+  document.getElementById('authState2').style.display = 'none';
+  // Clear email input
+  var emailInput = document.getElementById('authEmail');
+  if (emailInput) emailInput.value = '';
 }
 
 function hideAuthModal() {
   document.getElementById('authModal').classList.remove('active');
 }
 
-function googleSignIn() {
-  var provider = new firebase.auth.GoogleAuthProvider();
-  provider.addScope('email');
-  firebase.auth().signInWithPopup(provider).then(function(result) {
-    hideAuthModal();
-  }).catch(function(error) {
-    var msg = error.message || 'Sign-in failed. Please try again.';
-    showToast(msg, 'error');
-  });
+// Send OTP to the given email
+function sendOTP(email) {
+  // Validate email format
+  var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email)) {
+    showToast('Please enter a valid email address', 'warning');
+    return;
+  }
+
+  // Generate random 6-digit OTP
+  var otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Store OTP data
+  state.currentOTP = {
+    code: otp,
+    email: email,
+    timestamp: Date.now(),
+    expiresAt: Date.now() + 5 * 60 * 1000
+  };
+  saveState();
+
+  // Show OTP in toast notification
+  showOTPToast(otp);
+
+  // Switch modal to state 2 (OTP verification)
+  document.getElementById('authState1').style.display = 'none';
+  document.getElementById('authState2').style.display = 'block';
+
+  // Display the email in the verification view
+  document.getElementById('otpEmailDisplay').textContent = email;
+
+  // Clear OTP digit inputs
+  clearOtpInputs();
 }
 
-function googleSignOut() {
-  firebase.auth().signOut().then(function() {
-    showToast('Signed out successfully', 'info');
-  }).catch(function(error) {
-    showToast('Sign-out failed. Please try again.', 'error');
-  });
+// Verify the entered OTP code
+function verifyOTP(enteredCode) {
+  var storedOTP = state.currentOTP;
+
+  if (!storedOTP || !storedOTP.code) {
+    showToast('Invalid or expired OTP', 'error');
+    return false;
+  }
+
+  // Check if OTP matches
+  if (enteredCode !== storedOTP.code) {
+    showToast('Invalid or expired OTP', 'error');
+    return false;
+  }
+
+  // Check if OTP has expired (5-minute window)
+  if (Date.now() > storedOTP.expiresAt) {
+    showToast('Invalid or expired OTP', 'error');
+    state.currentOTP = null;
+    saveState();
+    return false;
+  }
+
+  // OTP is valid — create or retrieve user account
+  var email = storedOTP.email;
+  var name = email.split('@')[0];
+
+  // Store user if new
+  if (!state.users) state.users = {};
+  if (!state.users[email]) {
+    state.users[email] = {
+      email: email,
+      displayName: name,
+      createdAt: Date.now()
+    };
+  }
+
+  // Create session
+  state.session = {
+    isAuthenticated: true,
+    email: email,
+    displayName: state.users[email].displayName,
+    loginAt: Date.now()
+  };
+
+  // Clear used OTP
+  state.currentOTP = null;
+  saveState();
+
+  // Hide modal and update UI
+  hideAuthModal();
+  updateAuthUI();
+
+  showToast('Signed in successfully!', 'success');
+  return true;
 }
 
-function initFirebaseAuth() {
-  firebase.auth().onAuthStateChanged(function(user) {
-    if (user) {
-      updateAuthUI(user);
-      hideAuthModal();
-    } else {
-      updateAuthUI(null);
-      showAuthModal();
+// Handle OTP digit input — auto-focus next input
+function onOtpInput(e, index) {
+  var input = e.target;
+  var value = input.value;
+
+  // Only allow single digit
+  if (value && !/^\d$/.test(value)) {
+    input.value = '';
+    return;
+  }
+
+  // Add filled class for styling
+  if (value) {
+    input.classList.add('filled');
+  } else {
+    input.classList.remove('filled');
+  }
+
+  // Auto-focus next input if current has value
+  if (value && index < 6) {
+    var nextInput = document.getElementById('otp' + (index + 1));
+    if (nextInput) nextInput.focus();
+  }
+
+  // Auto-submit when all 6 digits are filled
+  if (value && index === 6) {
+    // Last digit entered — check if all filled
+    var allFilled = true;
+    var code = '';
+    for (var i = 1; i <= 6; i++) {
+      var digit = document.getElementById('otp' + i).value;
+      if (!digit) { allFilled = false; break; }
+      code += digit;
     }
-  });
-  // Bind Google Sign-In button
-  var signInBtn = document.getElementById('googleSignInBtn');
-  if (signInBtn) {
-    signInBtn.addEventListener('click', googleSignIn);
+    if (allFilled) {
+      verifyOTP(code);
+    }
+  } else if (value) {
+    // Check if all previous and current are filled
+    var allFilled2 = true;
+    var code2 = '';
+    for (var j = 1; j <= 6; j++) {
+      var d = document.getElementById('otp' + j).value;
+      if (!d) { allFilled2 = false; break; }
+      code2 += d;
+    }
+    if (allFilled2) {
+      verifyOTP(code2);
+    }
   }
 }
 
-function updateAuthUI(user) {
+// Handle OTP digit keydown — Backspace focuses previous input
+function onOtpKeydown(e, index) {
+  if (e.key === 'Backspace') {
+    var input = document.getElementById('otp' + index);
+    if (input.value === '' && index > 1) {
+      // Current is empty, focus previous
+      var prevInput = document.getElementById('otp' + (index - 1));
+      if (prevInput) {
+        prevInput.value = '';
+        prevInput.classList.remove('filled');
+        prevInput.focus();
+      }
+    } else {
+      // Clear current value
+      input.value = '';
+      input.classList.remove('filled');
+      if (index > 1) {
+        // Don't prevent default so backspace works naturally
+      }
+    }
+  }
+}
+
+// Collect all 6 digit values and verify
+function verifyOTPFromInputs() {
+  var code = '';
+  for (var i = 1; i <= 6; i++) {
+    var digit = document.getElementById('otp' + i).value;
+    if (!digit) {
+      showToast('Please enter all 6 digits', 'warning');
+      return;
+    }
+    code += digit;
+  }
+  verifyOTP(code);
+}
+
+// Resend OTP to the same email
+function resendOTP() {
+  if (!state.currentOTP || !state.currentOTP.email) {
+    showToast('Please start again with your email', 'warning');
+    showAuthModal();
+    return;
+  }
+  var email = state.currentOTP.email;
+  sendOTP(email);
+}
+
+// Clear all OTP digit inputs
+function clearOtpInputs() {
+  for (var i = 1; i <= 6; i++) {
+    var input = document.getElementById('otp' + i);
+    if (input) {
+      input.value = '';
+      input.classList.remove('filled');
+    }
+  }
+}
+
+// Show OTP toast notification with copy button
+function showOTPToast(otp) {
+  var container = document.getElementById('toastContainer');
+  var toast = document.createElement('div');
+  toast.className = 'toast otp-toast';
+
+  var textSpan = document.createElement('span');
+  textSpan.textContent = 'Your OTP is: ' + otp + ' (simulated)';
+
+  var copyBtn = document.createElement('button');
+  copyBtn.className = 'copy-btn';
+  copyBtn.textContent = 'Copy';
+  copyBtn.addEventListener('click', function() {
+    navigator.clipboard.writeText(otp).then(function() {
+      copyBtn.textContent = 'Copied!';
+      setTimeout(function() { copyBtn.textContent = 'Copy'; }, 1500);
+    }).catch(function() {
+      showToast('Failed to copy', 'error');
+    });
+  });
+
+  toast.appendChild(textSpan);
+  toast.appendChild(copyBtn);
+  container.appendChild(toast);
+
+  // Auto-dismiss after 10 seconds
+  setTimeout(function() {
+    if (toast.parentNode) toast.parentNode.removeChild(toast);
+  }, 10000);
+}
+
+// Sign out — clear session and update UI
+function signOut() {
+  state.session = null;
+  saveState();
+  updateAuthUI();
+  showAuthModal();
+  showToast('Signed out successfully', 'info');
+}
+
+// Update auth UI based on session state
+function updateAuthUI() {
   var loggedOut = document.getElementById('sidebarLoggedOut');
-  var logged_in = document.getElementById('sidebarLoggedIn');
-  if (user) {
+  var loggedIn = document.getElementById('sidebarLoggedIn');
+
+  if (state.session && state.session.isAuthenticated) {
     // User is signed in
     loggedOut.style.display = 'none';
-    logged_in.style.display = 'flex';
+    loggedIn.style.display = 'flex';
 
     var avatarEl = document.getElementById('userAvatar');
-    // Clear previous avatar content
     avatarEl.innerHTML = '';
 
-    if (user.photoURL) {
-      var img = document.createElement('img');
-      img.src = user.photoURL;
-      img.alt = 'Avatar';
-      img.style.width = '100%';
-      img.style.height = '100%';
-      img.style.borderRadius = '50%';
-      img.style.objectFit = 'cover';
-      avatarEl.appendChild(img);
-    } else {
-      var displayName = user.displayName || '';
-      var emailPrefix = user.email ? user.email.split('@')[0] : '';
-      var letter = (displayName || emailPrefix || '?').charAt(0).toUpperCase();
-      avatarEl.textContent = letter;
-    }
+    var displayName = state.session.displayName || '';
+    var emailPrefix = state.session.email ? state.session.email.split('@')[0] : '';
+    var letter = (displayName || emailPrefix || '?').charAt(0).toUpperCase();
+    avatarEl.textContent = letter;
 
-    var displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
-    document.getElementById('userName').textContent = displayName;
+    document.getElementById('userName').textContent = displayName || 'User';
   } else {
     // User is signed out
     loggedOut.style.display = 'block';
-    logged_in.style.display = 'none';
+    loggedIn.style.display = 'none';
   }
 }
 
+// Check if user is authenticated
 function checkAuth() {
-  var user = firebase.auth().currentUser;
-  if (!user) {
+  if (!state.session || !state.session.isAuthenticated) {
     showAuthModal();
     return false;
   }
   return true;
+}
+
+// Bind event listeners for OTP auth UI
+function bindOtpEventListeners() {
+  // Send OTP button
+  var sendOtpBtn = document.getElementById('sendOtpBtn');
+  if (sendOtpBtn) {
+    sendOtpBtn.addEventListener('click', function() {
+      var email = document.getElementById('authEmail').value.trim();
+      sendOTP(email);
+    });
+  }
+
+  // Allow Enter key on email input to trigger Send OTP
+  var authEmail = document.getElementById('authEmail');
+  if (authEmail) {
+    authEmail.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        var email = authEmail.value.trim();
+        sendOTP(email);
+      }
+    });
+  }
+
+  // OTP digit inputs — input and keydown handlers
+  for (var i = 1; i <= 6; i++) {
+    (function(index) {
+      var input = document.getElementById('otp' + index);
+      if (input) {
+        input.addEventListener('input', function(e) {
+          onOtpInput(e, index);
+        });
+        input.addEventListener('keydown', function(e) {
+          onOtpKeydown(e, index);
+        });
+        // Select all text on focus for easy replacement
+        input.addEventListener('focus', function() {
+          input.select();
+        });
+        // Paste handler — distribute pasted digits across inputs
+        input.addEventListener('paste', function(e) {
+          e.preventDefault();
+          var pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+          if (pasted.length >= 6) {
+            for (var j = 1; j <= 6; j++) {
+              var digitInput = document.getElementById('otp' + j);
+              digitInput.value = pasted[j - 1] || '';
+              if (digitInput.value) {
+                digitInput.classList.add('filled');
+              } else {
+                digitInput.classList.remove('filled');
+              }
+            }
+            // Auto-verify after paste
+            var code = pasted.substring(0, 6);
+            verifyOTP(code);
+          }
+        });
+      }
+    })(i);
+  }
+
+  // Verify OTP button
+  var verifyOtpBtn = document.getElementById('verifyOtpBtn');
+  if (verifyOtpBtn) {
+    verifyOtpBtn.addEventListener('click', function() {
+      verifyOTPFromInputs();
+    });
+  }
 }
 
 // ===== POSTER TEMPLATE & PALETTE SYSTEM =====

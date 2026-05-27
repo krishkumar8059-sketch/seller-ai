@@ -1517,6 +1517,16 @@ select {
   .catalog-grid {
     grid-template-columns: 1fr;
   }
+
+  .otp-input-row {
+    gap: 8px;
+  }
+
+  .otp-digit {
+    width: 38px;
+    height: 44px;
+    font-size: 18px;
+  }
 }
 
 /* ===== Utility ===== */
@@ -1700,58 +1710,61 @@ select {
   cursor: pointer;
 }
 
-/* ===== Google Sign-In Button ===== */
-.google-signin-wrapper {
+/* ===== OTP Input Styles ===== */
+.otp-input-row {
   display: flex;
   justify-content: center;
-  margin-top: 24px;
-}
-
-.google-signin-btn {
-  display: flex;
-  align-items: center;
   gap: 12px;
-  width: 100%;
-  max-width: 280px;
-  height: 48px;
-  padding: 0 24px;
-  background: #ffffff;
-  border: 1px solid #dadce0;
-  border-radius: 24px;
-  cursor: pointer;
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 14px;
+  margin: 24px 0;
+}
+
+.otp-digit {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: 24px;
   font-weight: 600;
-  color: #3c4043;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  transition: box-shadow 0.2s, background 0.2s;
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  outline: none;
+  transition: all 0.2s;
+  background: var(--bg-input);
+  color: var(--text);
 }
 
-.google-signin-btn:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+.otp-digit:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(108,92,231,0.2);
+  background: rgba(108,92,231,0.03);
 }
 
-.google-signin-btn:active {
-  background: #f5f5f5;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+.otp-digit.filled {
+  border-color: var(--primary);
 }
 
-.google-signin-btn .google-logo {
-  flex-shrink: 0;
+/* ===== OTP Toast Style ===== */
+.toast.otp-toast {
+  background: #6C5CE7;
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
 }
 
-.google-signin-btn span {
-  white-space: nowrap;
+.toast.otp-toast .copy-btn {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-left: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.2s;
 }
 
-body.light .google-signin-btn {
-  background: #ffffff;
-  border-color: #dadce0;
-  color: #3c4043;
-}
-
-body.light .google-signin-btn:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+.toast.otp-toast .copy-btn:hover {
+  background: rgba(255,255,255,0.35);
 }
 
 /* ===== Sidebar User Profile ===== */
@@ -2069,6 +2082,12 @@ body.light .google-signin-btn:hover {
 
   .auth-modal-card {
     padding: 28px 20px;
+  }
+
+  .otp-digit {
+    width: 44px;
+    height: 50px;
+    font-size: 20px;
   }
 }
 
