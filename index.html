@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Seller AI</title>
+
+<link rel="stylesheet" href="style.css">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+</head>
+
+<body>
+
+<nav class="navbar">
+
+<div class="logo">
+Seller AI
+</div>
+
+<div class="nav-links">
+<a href="#">Home</a>
+<a href="#">Features</a>
+<a href="#">Generator</a>
+</div>
+
+<div>
+<button class="btn" onclick="toggleMode()">
+Theme
+</button>
+
+<button class="btn" onclick="openModal()">
+Login
+</button>
+</div>
+
+</nav>
+
+<section class="hero">
+
+<div class="hero-left">
+
+<h1>
+Create <span class="gradient">Viral Ads</span> With AI
+</h1>
+
+<p>
+Generate ecommerce descriptions, captions, hashtags and AI marketing content instantly.
+</p>
+
+<button class="btn" onclick="openModal()">
+Get Started
+</button>
+
+</div>
+
+<div class="hero-right">
+
+<div class="card">
+<h2>AI Ads</h2>
+<p>Create stunning ads instantly.</p>
+</div>
+
+<div class="card">
+<h2>SEO Generator</h2>
+<p>Generate SEO descriptions automatically.</p>
+</div>
+
+<div class="card">
+<h2>Trend Finder</h2>
+<p>Discover trending products fast.</p>
+</div>
+
+</div>
+
+</section>
+
+<section class="generator">
+
+<div class="generator-box">
+
+<h1>AI Product Description Generator</h1>
+
+<input id="product" placeholder="Enter Product Name">
+
+<button class="btn" onclick="generateAI()">
+Generate
+</button>
+
+<div id="output" class="output">
+AI result will appear here...
+</div>
+
+</div>
+
+</section>
+
+<div class="modal" id="modal">
+
+<div class="modal-box">
+
+<span class="close" onclick="closeModal()">
+✖
+</span>
+
+<h2>Login / Signup</h2>
+
+<input type="email" id="email" placeholder="Email">
+
+<input type="password" id="password" placeholder="Password">
+
+<button class="btn" onclick="signup()">
+Signup
+</button>
+
+<br><br>
+
+<button class="btn" onclick="login()">
+Login
+</button>
+
+<p id="message"></p>
+
+</div>
+
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
