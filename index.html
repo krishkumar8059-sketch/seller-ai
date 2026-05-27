@@ -1,137 +1,962 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Seller AI</title>
-
-<link rel="stylesheet" href="style.css">
-
+<title>ResellFlow.ai — Resell Smarter with AI</title>
+<meta name="description" content="AI-powered platform for sellers and resellers. Generate product descriptions, ad creatives, marketing content, and manage your business with AI.">
+<meta name="keywords" content="resell, AI, ecommerce, product description, ad generator, marketing, seller tools">
+<meta property="og:title" content="ResellFlow.ai — Resell Smarter with AI">
+<meta property="og:description" content="AI-powered platform for sellers and resellers.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<nav class="navbar">
+<!-- Sidebar Navigation (Desktop) -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-icon">🚀</span>
+    <span class="logo-text">ResellFlow<span class="logo-dot">.ai</span></span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="#home" class="nav-item active" data-section="home">
+      <i class="fa-solid fa-house"></i><span>Home</span>
+    </a>
+    <a href="#core" class="nav-item" data-section="core">
+      <i class="fa-solid fa-wand-magic-sparkles"></i><span>Core AI</span>
+    </a>
+    <a href="#marketing" class="nav-item" data-section="marketing">
+      <i class="fa-solid fa-bullhorn"></i><span>Marketing</span>
+    </a>
+    <a href="#design" class="nav-item" data-section="design">
+      <i class="fa-solid fa-palette"></i><span>Design</span>
+    </a>
+    <a href="#platform" class="nav-item" data-section="platform">
+      <i class="fa-solid fa-mobile-screen"></i><span>Platform</span>
+    </a>
+    <a href="#business" class="nav-item" data-section="business">
+      <i class="fa-solid fa-chart-line"></i><span>Business</span>
+    </a>
+    <a href="#premium" class="nav-item" data-section="premium">
+      <i class="fa-solid fa-crown"></i><span>Premium</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+      <i class="fa-solid fa-moon" id="themeIcon"></i>
+    </button>
+  </div>
+</aside>
 
-<div class="logo">
-Seller AI
-</div>
-
-<div class="nav-links">
-<a href="#">Home</a>
-<a href="#">Features</a>
-<a href="#">Generator</a>
-</div>
-
-<div>
-<button class="btn" onclick="toggleMode()">
-Theme
-</button>
-
-<button class="btn" onclick="openModal()">
-Login
-</button>
-</div>
-
+<!-- Mobile Bottom Navigation -->
+<nav class="bottom-nav" id="bottomNav">
+  <a href="#home" class="bottom-nav-item active" data-section="home">
+    <i class="fa-solid fa-house"></i><span>Home</span>
+  </a>
+  <a href="#core" class="bottom-nav-item" data-section="core">
+    <i class="fa-solid fa-wand-magic-sparkles"></i><span>Core</span>
+  </a>
+  <a href="#marketing" class="bottom-nav-item" data-section="marketing">
+    <i class="fa-solid fa-bullhorn"></i><span>Market</span>
+  </a>
+  <a href="#design" class="bottom-nav-item" data-section="design">
+    <i class="fa-solid fa-palette"></i><span>Design</span>
+  </a>
+  <a href="#platform" class="bottom-nav-item" data-section="platform">
+    <i class="fa-solid fa-mobile-screen"></i><span>Platform</span>
+  </a>
+  <a href="#business" class="bottom-nav-item" data-section="business">
+    <i class="fa-solid fa-chart-line"></i><span>Business</span>
+  </a>
+  <a href="#premium" class="bottom-nav-item" data-section="premium">
+    <i class="fa-solid fa-crown"></i><span>Premium</span>
+  </a>
 </nav>
 
-<section class="hero">
+<!-- Main Content -->
+<main class="main-content" id="mainContent">
 
-<div class="hero-left">
+  <!-- HOME SECTION -->
+  <section class="page-section active" id="section-home">
+    <div class="hero-banner">
+      <div class="hero-badge">✨ AI-Powered Seller Platform</div>
+      <h1 class="hero-title">Resell Smarter <span class="gradient-text">with AI</span></h1>
+      <p class="hero-subtitle">Generate product descriptions, ad creatives, marketing content, manage your catalog, track leads, and grow your reselling business — all powered by AI.</p>
+      <div class="hero-actions">
+        <a href="#core" class="btn btn-primary btn-lg">Start Creating</a>
+        <a href="#business" class="btn btn-outline btn-lg">View Dashboard</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <span class="hero-stat-value">24+</span>
+          <span class="hero-stat-label">AI Features</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value">3</span>
+          <span class="hero-stat-label">Languages</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value">∞</span>
+          <span class="hero-stat-label">Generations</span>
+        </div>
+      </div>
+    </div>
+    <div class="features-grid">
+      <div class="feature-preview-card" onclick="navigateTo('core')">
+        <div class="fpc-icon" style="background:linear-gradient(135deg,#6C5CE7,#a29bfe)"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+        <h3>Core AI Tools</h3>
+        <p>Product descriptions, ad creatives, smart pricing, trend finder</p>
+      </div>
+      <div class="feature-preview-card" onclick="navigateTo('marketing')">
+        <div class="fpc-icon" style="background:linear-gradient(135deg,#00B894,#55efc4)"><i class="fa-solid fa-bullhorn"></i></div>
+        <h3>Marketing Suite</h3>
+        <p>Video scripts, captions & hashtags, marketing reminders</p>
+      </div>
+      <div class="feature-preview-card" onclick="navigateTo('design')">
+        <div class="fpc-icon" style="background:linear-gradient(135deg,#FD79A8,#fab1a0)"><i class="fa-solid fa-palette"></i></div>
+        <h3>Design Studio</h3>
+        <p>Posters, banners, festival templates, brand kits</p>
+      </div>
+      <div class="feature-preview-card" onclick="navigateTo('platform')">
+        <div class="fpc-icon" style="background:linear-gradient(135deg,#0984e3,#74b9ff)"><i class="fa-solid fa-mobile-screen"></i></div>
+        <h3>Platform Tools</h3>
+        <p>Mobile dashboard, cloud save, multi-language, notifications</p>
+      </div>
+      <div class="feature-preview-card" onclick="navigateTo('business')">
+        <div class="fpc-icon" style="background:linear-gradient(135deg,#fdcb6e,#f39c12)"><i class="fa-solid fa-chart-line"></i></div>
+        <h3>Business Hub</h3>
+        <p>Analytics, customer leads, product catalog management</p>
+      </div>
+      <div class="feature-preview-card" onclick="navigateTo('premium')">
+        <div class="fpc-icon" style="background:linear-gradient(135deg,#e17055,#d63031)"><i class="fa-solid fa-crown"></i></div>
+        <h3>Premium & Future</h3>
+        <p>Unlimited AI, HD export, voiceover, integrations & more</p>
+      </div>
+    </div>
+  </section>
 
-<h1>
-Create <span class="gradient">Viral Ads</span> With AI
-</h1>
+  <!-- CORE AI SECTION -->
+  <section class="page-section" id="section-core">
+    <div class="section-header">
+      <h1><i class="fa-solid fa-wand-magic-sparkles"></i> Core AI Tools</h1>
+      <p>Powerful AI generators to create compelling product content instantly</p>
+    </div>
 
-<p>
-Generate ecommerce descriptions, captions, hashtags and AI marketing content instantly.
-</p>
+    <!-- Product Description Generator -->
+    <div class="feature-card" id="feat-product-desc">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-file-lines"></i></div>
+        <div>
+          <h2>Product Description Generator</h2>
+          <p>Create SEO-optimized product descriptions in seconds</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Product Name</label>
+            <input type="text" id="pd-name" placeholder="e.g., Wireless Bluetooth Earbuds">
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="pd-category">
+              <option value="electronics">Electronics</option>
+              <option value="fashion">Fashion</option>
+              <option value="beauty">Beauty & Health</option>
+              <option value="home">Home & Kitchen</option>
+              <option value="sports">Sports & Fitness</option>
+              <option value="toys">Toys & Games</option>
+              <option value="books">Books & Stationery</option>
+              <option value="food">Food & Beverages</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Key Features (comma separated)</label>
+          <input type="text" id="pd-features" placeholder="e.g., Noise cancelling, 24hr battery, Waterproof">
+        </div>
+        <div class="form-group">
+          <label>Tone</label>
+          <select id="pd-tone">
+            <option value="professional">Professional</option>
+            <option value="casual">Casual & Friendly</option>
+            <option value="luxury">Luxury & Premium</option>
+            <option value="urgent">Urgent & Sales</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="generateProductDescription()"><i class="fa-solid fa-sparkles"></i> Generate Description</button>
+        <div class="output-area" id="pd-output" style="display:none"></div>
+        <div class="output-actions" id="pd-actions" style="display:none">
+          <button class="btn btn-sm btn-outline" onclick="copyOutput('pd-output')"><i class="fa-solid fa-copy"></i> Copy</button>
+          <button class="btn btn-sm btn-outline" onclick="saveToCatalog()"><i class="fa-solid fa-floppy-disk"></i> Save to Catalog</button>
+        </div>
+      </div>
+    </div>
 
-<button class="btn" onclick="openModal()">
-Get Started
-</button>
+    <!-- Ad Creative Generator -->
+    <div class="feature-card" id="feat-ad-creative">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-rectangle-ad"></i></div>
+        <div>
+          <h2>Ad Creative Generator</h2>
+          <p>Generate platform-specific ad copy for Instagram, WhatsApp & Facebook</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Product Name</label>
+            <input type="text" id="ad-product" placeholder="e.g., Silk Saree Collection">
+          </div>
+          <div class="form-group">
+            <label>Platform</label>
+            <select id="ad-platform">
+              <option value="instagram">Instagram</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="facebook">Facebook</option>
+              <option value="all">All Platforms</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Key Selling Points</label>
+          <textarea id="ad-points" rows="2" placeholder="e.g., Handcrafted, Pure silk, Free shipping"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="generateAdCreative()"><i class="fa-solid fa-sparkles"></i> Generate Ad Copy</button>
+        <div class="output-area" id="ad-output" style="display:none"></div>
+        <div class="output-actions" id="ad-actions" style="display:none">
+          <button class="btn btn-sm btn-outline" onclick="copyOutput('ad-output')"><i class="fa-solid fa-copy"></i> Copy</button>
+        </div>
+      </div>
+    </div>
 
+    <!-- Smart Price Suggestion -->
+    <div class="feature-card" id="feat-price">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-tags"></i></div>
+        <div>
+          <h2>Smart Price Suggestion</h2>
+          <p>Get AI-powered pricing recommendations with market reasoning</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Product Name</label>
+            <input type="text" id="sp-product" placeholder="e.g., Handmade Candle Set">
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="sp-category">
+              <option value="electronics">Electronics</option>
+              <option value="fashion">Fashion</option>
+              <option value="beauty">Beauty & Health</option>
+              <option value="home">Home & Kitchen</option>
+              <option value="sports">Sports & Fitness</option>
+              <option value="handmade">Handmade & Crafts</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cost Price (₹)</label>
+            <input type="number" id="sp-cost" placeholder="e.g., 200">
+          </div>
+          <div class="form-group">
+            <label>Target Margin (%)</label>
+            <input type="number" id="sp-margin" placeholder="e.g., 40" value="40">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="generatePriceSuggestion()"><i class="fa-solid fa-sparkles"></i> Get Price Suggestion</button>
+        <div class="output-area" id="sp-output" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Trending Product Finder -->
+    <div class="feature-card" id="feat-trending">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-fire"></i></div>
+        <div>
+          <h2>Trending Product Finder</h2>
+          <p>Discover high-demand products with demand scores and insights</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category</label>
+            <select id="tp-category">
+              <option value="all">All Categories</option>
+              <option value="electronics">Electronics</option>
+              <option value="fashion">Fashion</option>
+              <option value="beauty">Beauty & Health</option>
+              <option value="home">Home & Kitchen</option>
+              <option value="festival">Festival Specials</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Sort By</label>
+            <select id="tp-sort">
+              <option value="demand">Demand Score</option>
+              <option value="profit">Profit Potential</option>
+              <option value="competition">Low Competition</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="findTrendingProducts()"><i class="fa-solid fa-sparkles"></i> Find Trending Products</button>
+        <div id="tp-results" class="trending-results" style="display:none"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MARKETING SECTION -->
+  <section class="page-section" id="section-marketing">
+    <div class="section-header">
+      <h1><i class="fa-solid fa-bullhorn"></i> Marketing Suite</h1>
+      <p>Create viral marketing content and stay on schedule</p>
+    </div>
+
+    <!-- Short Video Script Generator -->
+    <div class="feature-card" id="feat-video-script">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-video"></i></div>
+        <div>
+          <h2>Short Video Script Generator</h2>
+          <p>Generate Reels, Shorts & TikTok scripts with hooks and CTAs</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Product Name</label>
+            <input type="text" id="vs-product" placeholder="e.g., Skincare Serum">
+          </div>
+          <div class="form-group">
+            <label>Video Type</label>
+            <select id="vs-type">
+              <option value="reels">Instagram Reels</option>
+              <option value="shorts">YouTube Shorts</option>
+              <option value="tiktok">TikTok</option>
+              <option value="promo">Product Promo</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Key Message</label>
+          <textarea id="vs-message" rows="2" placeholder="What's the main thing viewers should know?"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="generateVideoScript()"><i class="fa-solid fa-sparkles"></i> Generate Script</button>
+        <div class="output-area" id="vs-output" style="display:none"></div>
+        <div class="output-actions" id="vs-actions" style="display:none">
+          <button class="btn btn-sm btn-outline" onclick="copyOutput('vs-output')"><i class="fa-solid fa-copy"></i> Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Caption & Hashtag Generator -->
+    <div class="feature-card" id="feat-caption">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-hashtag"></i></div>
+        <div>
+          <h2>Caption & Hashtag Generator</h2>
+          <p>Generate viral captions with trending hashtags for maximum reach</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Product/Niche</label>
+            <input type="text" id="ch-product" placeholder="e.g., Organic Tea">
+          </div>
+          <div class="form-group">
+            <label>Style</label>
+            <select id="ch-style">
+              <option value="engaging">Engaging & Fun</option>
+              <option value="professional">Professional</option>
+              <option value="minimal">Minimal & Aesthetic</option>
+              <option value="storytelling">Storytelling</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="generateCaptionHashtag()"><i class="fa-solid fa-sparkles"></i> Generate Captions</button>
+        <div class="output-area" id="ch-output" style="display:none"></div>
+        <div class="output-actions" id="ch-actions" style="display:none">
+          <button class="btn btn-sm btn-outline" onclick="copyOutput('ch-output')"><i class="fa-solid fa-copy"></i> Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Marketing Reminder System -->
+    <div class="feature-card" id="feat-reminders">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-bell"></i></div>
+        <div>
+          <h2>Marketing Reminder System</h2>
+          <p>Schedule and track your marketing activities and content posts</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Reminder Title</label>
+            <input type="text" id="mr-title" placeholder="e.g., Post Diwali Sale Reel">
+          </div>
+          <div class="form-group">
+            <label>Date & Time</label>
+            <input type="datetime-local" id="mr-datetime">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="mr-notes" rows="2" placeholder="Add details about this reminder..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="addReminder()"><i class="fa-solid fa-plus"></i> Add Reminder</button>
+        <div class="reminder-list" id="reminder-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DESIGN SECTION -->
+  <section class="page-section" id="section-design">
+    <div class="section-header">
+      <h1><i class="fa-solid fa-palette"></i> Design Studio</h1>
+      <p>Create stunning visuals and brand materials with AI</p>
+    </div>
+
+    <!-- AI Poster & Banner Maker -->
+    <div class="feature-card" id="feat-poster">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-image"></i></div>
+        <div>
+          <h2>AI Poster & Banner Maker</h2>
+          <p>Generate poster previews with text overlays and themed backgrounds</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Headline</label>
+            <input type="text" id="ps-headline" placeholder="e.g., MEGA SALE">
+          </div>
+          <div class="form-group">
+            <label>Subheadline</label>
+            <input type="text" id="ps-subhead" placeholder="e.g., Up to 70% Off">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Theme</label>
+            <select id="ps-theme">
+              <option value="gradient1">Purple Gradient</option>
+              <option value="gradient2">Ocean Blue</option>
+              <option value="gradient3">Sunset Orange</option>
+              <option value="gradient4">Forest Green</option>
+              <option value="gradient5">Rose Gold</option>
+              <option value="gradient6">Dark Neon</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Size</label>
+            <select id="ps-size">
+              <option value="instagram-post">Instagram Post (1:1)</option>
+              <option value="instagram-story">Instagram Story (9:16)</option>
+              <option value="facebook-cover">Facebook Cover</option>
+              <option value="whatsapp-status">WhatsApp Status</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="generatePoster()"><i class="fa-solid fa-sparkles"></i> Generate Poster</button>
+        <div class="poster-preview-wrap" id="poster-preview-wrap" style="display:none">
+          <canvas id="posterCanvas" width="600" height="600"></canvas>
+          <button class="btn btn-sm btn-outline" onclick="downloadPoster()"><i class="fa-solid fa-download"></i> Download</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Festival Sale Templates -->
+    <div class="feature-card" id="feat-festival">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-gift"></i></div>
+        <div>
+          <h2>Festival Sale Templates</h2>
+          <p>Ready-made templates for major festivals and sale events</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="festival-grid">
+          <div class="festival-template" data-festival="diwali" onclick="loadFestivalTemplate('diwali')">
+            <div class="ft-bg ft-diwali"></div>
+            <div class="ft-content">
+              <h3>🪔 Diwali Special</h3>
+              <p>Festival of Lights Sale</p>
+            </div>
+          </div>
+          <div class="festival-template" data-festival="holi" onclick="loadFestivalTemplate('holi')">
+            <div class="ft-bg ft-holi"></div>
+            <div class="ft-content">
+              <h3>🎨 Holi Colors</h3>
+              <p>Colorful Savings Event</p>
+            </div>
+          </div>
+          <div class="festival-template" data-festival="eid" onclick="loadFestivalTemplate('eid')">
+            <div class="ft-bg ft-eid"></div>
+            <div class="ft-content">
+              <h3>🌙 Eid Mubarak</h3>
+              <p>Celebration Offers</p>
+            </div>
+          </div>
+          <div class="festival-template" data-festival="rakhi" onclick="loadFestivalTemplate('rakhi')">
+            <div class="ft-bg ft-rakhi"></div>
+            <div class="ft-content">
+              <h3>🧵 Raksha Bandhan</h3>
+              <p>Sibling Love Sale</p>
+            </div>
+          </div>
+          <div class="festival-template" data-festival="newyear" onclick="loadFestivalTemplate('newyear')">
+            <div class="ft-bg ft-newyear"></div>
+            <div class="ft-content">
+              <h3>🎉 New Year</h3>
+              <p>Fresh Start Deals</p>
+            </div>
+          </div>
+          <div class="festival-template" data-festival="christmas" onclick="loadFestivalTemplate('christmas')">
+            <div class="ft-bg ft-christmas"></div>
+            <div class="ft-content">
+              <h3>🎄 Christmas</h3>
+              <p>Holiday Specials</p>
+            </div>
+          </div>
+        </div>
+        <div class="output-area" id="festival-output" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- Auto Brand Kit Generator -->
+    <div class="feature-card" id="feat-brandkit">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-swatchbook"></i></div>
+        <div>
+          <h2>Auto Brand Kit Generator</h2>
+          <p>Generate complete brand identity — colors, fonts, and theme</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Business Name</label>
+            <input type="text" id="bk-name" placeholder="e.g., Priya's Boutique">
+          </div>
+          <div class="form-group">
+            <label>Industry</label>
+            <select id="bk-industry">
+              <option value="fashion">Fashion & Clothing</option>
+              <option value="beauty">Beauty & Cosmetics</option>
+              <option value="food">Food & Beverages</option>
+              <option value="tech">Technology</option>
+              <option value="home">Home & Decor</option>
+              <option value="handmade">Handmade & Crafts</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="generateBrandKit()"><i class="fa-solid fa-sparkles"></i> Generate Brand Kit</button>
+        <div class="output-area" id="bk-output" style="display:none"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLATFORM SECTION -->
+  <section class="page-section" id="section-platform">
+    <div class="section-header">
+      <h1><i class="fa-solid fa-mobile-screen"></i> Platform Tools</h1>
+      <p>Cross-platform features for seamless selling experience</p>
+    </div>
+
+    <!-- Mobile Dashboard -->
+    <div class="feature-card" id="feat-mobile">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-mobile-screen-button"></i></div>
+        <div>
+          <h2>Mobile Dashboard</h2>
+          <p>Your at-a-glance business overview optimized for mobile</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="mobile-dashboard">
+          <div class="dash-stat-grid">
+            <div class="dash-stat-card">
+              <div class="dash-stat-icon" style="color:#6C5CE7"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+              <div class="dash-stat-value" id="md-generations">0</div>
+              <div class="dash-stat-label">AI Generations</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-icon" style="color:#00B894"><i class="fa-solid fa-box"></i></div>
+              <div class="dash-stat-value" id="md-products">0</div>
+              <div class="dash-stat-label">Products</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-icon" style="color:#FD79A8"><i class="fa-solid fa-users"></i></div>
+              <div class="dash-stat-value" id="md-leads">0</div>
+              <div class="dash-stat-label">Leads</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-icon" style="color:#fdcb6e"><i class="fa-solid fa-bell"></i></div>
+              <div class="dash-stat-value" id="md-reminders">0</div>
+              <div class="dash-stat-label">Reminders</div>
+            </div>
+          </div>
+          <div class="quick-actions">
+            <h3>Quick Actions</h3>
+            <div class="quick-action-grid">
+              <button class="btn btn-outline btn-sm" onclick="navigateTo('core')"><i class="fa-solid fa-file-lines"></i> New Description</button>
+              <button class="btn btn-outline btn-sm" onclick="navigateTo('core')"><i class="fa-solid fa-rectangle-ad"></i> New Ad</button>
+              <button class="btn btn-outline btn-sm" onclick="navigateTo('business')"><i class="fa-solid fa-plus"></i> Add Product</button>
+              <button class="btn btn-outline btn-sm" onclick="navigateTo('business')"><i class="fa-solid fa-user-plus"></i> Add Lead</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cloud Save -->
+    <div class="feature-card" id="cloud-save">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+        <div>
+          <h2>Cloud Save</h2>
+          <p>All your data saved locally and ready to export anytime</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="cloud-save-info">
+          <div class="csi-item"><i class="fa-solid fa-check-circle" style="color:#00B894"></i> Auto-saved to browser storage</div>
+          <div class="csi-item"><i class="fa-solid fa-check-circle" style="color:#00B894"></i> Export & import your data anytime</div>
+          <div class="csi-item"><i class="fa-solid fa-check-circle" style="color:#00B894"></i> Survives page refreshes and sessions</div>
+        </div>
+        <div class="form-row">
+          <button class="btn btn-outline" onclick="exportData()"><i class="fa-solid fa-download"></i> Export Data</button>
+          <button class="btn btn-outline" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-upload"></i> Import Data</button>
+          <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+          <button class="btn btn-danger" onclick="clearAllData()"><i class="fa-solid fa-trash"></i> Clear All Data</button>
+        </div>
+        <div class="storage-stats" id="storage-stats"></div>
+      </div>
+    </div>
+
+    <!-- Multi-Language -->
+    <div class="feature-card" id="feat-language">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-language"></i></div>
+        <div>
+          <h2>Multi-Language Support</h2>
+          <p>Use ResellFlow in English, Hindi, or Punjabi</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="form-group">
+          <label>Select Language</label>
+          <select id="lang-select" onchange="switchLanguage(this.value)">
+            <option value="en">🇬🇧 English</option>
+            <option value="hi">🇮🇳 हिन्दी (Hindi)</option>
+            <option value="pa">🇮🇳 ਪੰਜਾਬੀ (Punjabi)</option>
+          </select>
+        </div>
+        <div class="lang-preview" id="lang-preview">
+          <p class="lang-demo-text">Your selected language will be applied across the app interface.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Smart Notifications -->
+    <div class="feature-card" id="feat-notifications">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-bell"></i></div>
+        <div>
+          <h2>Smart Notifications</h2>
+          <p>Get timely tips, trend alerts, and marketing reminders</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="notification-feed" id="notification-feed">
+          <div class="notif-item notif-tip">
+            <i class="fa-solid fa-lightbulb"></i>
+            <div>
+              <strong>Pro Tip</strong>
+              <p>Use emotional triggers in your product descriptions for 3x more engagement!</p>
+            </div>
+          </div>
+          <div class="notif-item notif-trend">
+            <i class="fa-solid fa-fire"></i>
+            <div>
+              <strong>Trending Now</strong>
+              <p>Smart watches are trending this week — consider adding them to your catalog.</p>
+            </div>
+          </div>
+          <div class="notif-item notif-reminder">
+            <i class="fa-solid fa-clock"></i>
+            <div>
+              <strong>Reminder</strong>
+              <p>Post your festive sale content at least 3 days before the event for maximum reach.</p>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-outline" onclick="refreshNotifications()"><i class="fa-solid fa-rotate"></i> Refresh Alerts</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- BUSINESS SECTION -->
+  <section class="page-section" id="section-business">
+    <div class="section-header">
+      <h1><i class="fa-solid fa-chart-line"></i> Business Hub</h1>
+      <p>Manage your products, track leads, and analyze performance</p>
+    </div>
+
+    <!-- Analytics Dashboard -->
+    <div class="feature-card" id="feat-analytics">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-chart-pie"></i></div>
+        <div>
+          <h2>Analytics Dashboard</h2>
+          <p>Track your AI usage, lead conversions, and business metrics</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="analytics-grid">
+          <div class="analytics-stat">
+            <div class="as-label">Total Generations</div>
+            <div class="as-value" id="an-total">0</div>
+          </div>
+          <div class="analytics-stat">
+            <div class="as-label">Products in Catalog</div>
+            <div class="as-value" id="an-products">0</div>
+          </div>
+          <div class="analytics-stat">
+            <div class="as-label">Active Leads</div>
+            <div class="as-value" id="an-leads">0</div>
+          </div>
+          <div class="analytics-stat">
+            <div class="as-label">Conversion Rate</div>
+            <div class="as-value" id="an-conversion">0%</div>
+          </div>
+        </div>
+        <div class="charts-row">
+          <div class="chart-container">
+            <h4>Generation Types</h4>
+            <div class="bar-chart" id="chart-gen-types"></div>
+          </div>
+          <div class="chart-container">
+            <h4>Lead Status</h4>
+            <div class="bar-chart" id="chart-lead-status"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Lead Management -->
+    <div class="feature-card" id="feat-leads">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-address-book"></i></div>
+        <div>
+          <h2>Customer Lead Management</h2>
+          <p>Track and manage your customer leads through the sales pipeline</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Customer Name</label>
+            <input type="text" id="cl-name" placeholder="e.g., Rahul Sharma">
+          </div>
+          <div class="form-group">
+            <label>Contact</label>
+            <input type="text" id="cl-contact" placeholder="Phone or email">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Product Interest</label>
+            <input type="text" id="cl-product" placeholder="What are they interested in?">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="cl-status">
+              <option value="new">New</option>
+              <option value="contacted">Contacted</option>
+              <option value="converted">Converted</option>
+              <option value="lost">Lost</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="cl-notes" rows="2" placeholder="Add notes about this lead..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="addLead()"><i class="fa-solid fa-plus"></i> Add Lead</button>
+        <div class="leads-table-wrap">
+          <table class="data-table" id="leads-table">
+            <thead>
+              <tr><th>Name</th><th>Contact</th><th>Product</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="leads-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Catalog Management -->
+    <div class="feature-card" id="feat-catalog">
+      <div class="feature-card-header">
+        <div class="fc-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+        <div>
+          <h2>Product Catalog Management</h2>
+          <p>Organize, search, and manage all your products in one place</p>
+        </div>
+      </div>
+      <div class="feature-card-body">
+        <div class="catalog-toolbar">
+          <input type="text" id="pc-search" placeholder="Search products..." oninput="filterCatalog()">
+          <select id="pc-filter-cat" onchange="filterCatalog()">
+            <option value="all">All Categories</option>
+            <option value="electronics">Electronics</option>
+            <option value="fashion">Fashion</option>
+            <option value="beauty">Beauty & Health</option>
+            <option value="home">Home & Kitchen</option>
+            <option value="sports">Sports & Fitness</option>
+            <option value="handmade">Handmade & Crafts</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="openAddProductModal()"><i class="fa-solid fa-plus"></i> Add Product</button>
+        </div>
+        <div class="catalog-grid" id="catalog-grid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PREMIUM SECTION -->
+  <section class="page-section" id="section-premium">
+    <div class="section-header">
+      <h1><i class="fa-solid fa-crown"></i> Premium & Future Features</h1>
+      <p>Unlock unlimited power and get early access to upcoming features</p>
+    </div>
+
+    <!-- Premium Banner -->
+    <div class="premium-banner">
+      <div class="premium-badge">👑 PREMIUM</div>
+      <h2>Unlock the Full Power of ResellFlow.ai</h2>
+      <p>Get unlimited AI generations, HD exports, watermark-free content, and early access to upcoming features.</p>
+      <button class="btn btn-premium btn-lg" onclick="showToast('Premium upgrade coming soon! Stay tuned.','info')">Upgrade to Premium</button>
+    </div>
+
+    <!-- Premium Features Grid -->
+    <div class="premium-features-grid">
+      <div class="premium-feature-card">
+        <div class="pfc-icon"><i class="fa-solid fa-infinity"></i></div>
+        <h3>Unlimited AI</h3>
+        <p>Generate unlimited product descriptions, ads, scripts, and more without any daily limits.</p>
+        <span class="pfc-badge">Premium</span>
+      </div>
+      <div class="premium-feature-card">
+        <div class="pfc-icon"><i class="fa-solid fa-droplet-slash"></i></div>
+        <h3>No Watermark</h3>
+        <p>Export all posters, banners, and designs without any ResellFlow watermark.</p>
+        <span class="pfc-badge">Premium</span>
+      </div>
+      <div class="premium-feature-card">
+        <div class="pfc-icon"><i class="fa-solid fa-high-definition"></i></div>
+        <h3>HD Export</h3>
+        <p>Download all generated images and designs in high definition for professional use.</p>
+        <span class="pfc-badge">Premium</span>
+      </div>
+      <div class="premium-feature-card">
+        <div class="pfc-icon"><i class="fa-solid fa-microphone"></i></div>
+        <h3>Voiceover Generator</h3>
+        <p>Add AI-generated voiceovers to your video scripts and ad content.</p>
+        <span class="pfc-badge coming-soon">Coming Soon</span>
+        <button class="btn btn-sm btn-outline" onclick="tryVoiceover()"><i class="fa-solid fa-play"></i> Try Demo</button>
+        <div class="output-area" id="vo-output" style="display:none"></div>
+      </div>
+      <div class="premium-feature-card">
+        <div class="pfc-icon"><i class="fa-solid fa-film"></i></div>
+        <h3>Video Ad Creator</h3>
+        <p>Create full video ads with motion graphics, transitions, and AI narration.</p>
+        <span class="pfc-badge coming-soon">Coming Soon</span>
+        <button class="btn btn-sm btn-outline" onclick="tryVideoAd()"><i class="fa-solid fa-play"></i> Try Demo</button>
+        <div class="output-area" id="vac-output" style="display:none"></div>
+      </div>
+      <div class="premium-feature-card">
+        <div class="pfc-icon"><i class="fa-solid fa-store"></i></div>
+        <h3>Shopify & Meesho Integration</h3>
+        <p>Sync your product catalog directly with Shopify and Meesho stores.</p>
+        <span class="pfc-badge coming-soon">Coming Soon</span>
+        <button class="btn btn-sm btn-outline" onclick="tryShopifyIntegration()"><i class="fa-solid fa-plug"></i> Try Demo</button>
+        <div class="output-area" id="si-output" style="display:none"></div>
+      </div>
+      <div class="premium-feature-card">
+        <div class="pfc-icon"><i class="fa-brands fa-whatsapp"></i></div>
+        <h3>WhatsApp Integration</h3>
+        <p>Send generated ads and catalogs directly to customers via WhatsApp Business API.</p>
+        <span class="pfc-badge coming-soon">Coming Soon</span>
+        <button class="btn btn-sm btn-outline" onclick="tryWhatsAppIntegration()"><i class="fa-solid fa-plug"></i> Try Demo</button>
+        <div class="output-area" id="wa-output" style="display:none"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Add Product Modal -->
+<div class="modal-overlay" id="addProductModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Add Product</h3>
+      <button class="modal-close" onclick="closeModal('addProductModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Product Name</label>
+        <input type="text" id="ap-name" placeholder="e.g., Bluetooth Speaker">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="ap-category">
+          <option value="electronics">Electronics</option>
+          <option value="fashion">Fashion</option>
+          <option value="beauty">Beauty & Health</option>
+          <option value="home">Home & Kitchen</option>
+          <option value="sports">Sports & Fitness</option>
+          <option value="handmade">Handmade & Crafts</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Price (₹)</label>
+          <input type="number" id="ap-price" placeholder="e.g., 999">
+        </div>
+        <div class="form-group">
+          <label>Stock</label>
+          <input type="number" id="ap-stock" placeholder="e.g., 50">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="ap-desc" rows="3" placeholder="Product description..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('addProductModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addProduct()">Add Product</button>
+    </div>
+  </div>
 </div>
 
-<div class="hero-right">
-
-<div class="card">
-<h2>AI Ads</h2>
-<p>Create stunning ads instantly.</p>
-</div>
-
-<div class="card">
-<h2>SEO Generator</h2>
-<p>Generate SEO descriptions automatically.</p>
-</div>
-
-<div class="card">
-<h2>Trend Finder</h2>
-<p>Discover trending products fast.</p>
-</div>
-
-</div>
-
-</section>
-
-<section class="generator">
-
-<div class="generator-box">
-
-<h1>AI Product Description Generator</h1>
-
-<input id="product" placeholder="Enter Product Name">
-
-<button class="btn" onclick="generateAI()">
-Generate
-</button>
-
-<div id="output" class="output">
-AI result will appear here...
-</div>
-
-</div>
-
-</section>
-
-<div class="modal" id="modal">
-
-<div class="modal-box">
-
-<span class="close" onclick="closeModal()">
-✖
-</span>
-
-<h2>Login / Signup</h2>
-
-<input type="email" id="email" placeholder="Email">
-
-<input type="password" id="password" placeholder="Password">
-
-<button class="btn" onclick="signup()">
-Signup
-</button>
-
-<br><br>
-
-<button class="btn" onclick="login()">
-Login
-</button>
-
-<p id="message"></p>
-
-</div>
-
-</div>
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
 
 <script src="app.js"></script>
-
 </body>
 </html>
