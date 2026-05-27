@@ -13,8 +13,6 @@ function defaultState() {
     generations: [],
     settings: { lang: 'en', theme: 'dark', selectedTemplate: 'minimalist', selectedPalette: 'neonglow' },
     session: null,
-    users: {},
-    currentOTP: null,
     lastSave: Date.now()
   };
 }
@@ -507,147 +505,96 @@ function deleteReminder(id) {
   showToast('Reminder deleted', 'info');
 }
 
-// ===== AUTH SYSTEM =====
+// ===== AUTH SYSTEM (Firebase Google Auth) =====
 function initAuth() {
-  if (state.session && state.session.isAuthenticated) {
-    updateAuthUI(true);
-  } else {
-    updateAuthUI(false);
-    showAuthModal();
-  }
+  initFirebaseAuth();
 }
 
 function showAuthModal() {
   var modal = document.getElementById('authModal');
   modal.classList.add('active');
-  document.getElementById('authState1').style.display = 'block';
-  document.getElementById('authState2').style.display = 'none';
-  document.getElementById('authEmail').value = '';
-  var digits = document.querySelectorAll('.otp-digit');
-  for (var i = 0; i < digits.length; i++) { digits[i].value = ''; }
 }
 
 function hideAuthModal() {
   document.getElementById('authModal').classList.remove('active');
 }
 
-function sendOTP(email) {
-  if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-    showToast('Please enter a valid email address', 'warning');
-    return;
-  }
-  var otp = '';
-  for (var i = 0; i < 6; i++) { otp += Math.floor(Math.random() * 10); }
-  state.currentOTP = { code: otp, timestamp: Date.now(), email: email };
-  saveState();
-
-  // Show OTP via toast with copy button
-  showOTPToast(otp);
-
-  // Switch to state 2
-  document.getElementById('authState1').style.display = 'none';
-  document.getElementById('authState2').style.display = 'block';
-  document.getElementById('authEmailDisplay').textContent = email;
-  var firstDigit = document.querySelector('.otp-digit[data-index="0"]');
-  if (firstDigit) firstDigit.focus();
+function googleSignIn() {
+  var provider = new firebase.auth.GoogleAuthProvider();
+  provider.addScope('email');
+  firebase.auth().signInWithPopup(provider).then(function(result) {
+    hideAuthModal();
+  }).catch(function(error) {
+    var msg = error.message || 'Sign-in failed. Please try again.';
+    showToast(msg, 'error');
+  });
 }
 
-function showOTPToast(otp) {
-  var container = document.getElementById('toastContainer');
-  var toast = document.createElement('div');
-  toast.className = 'toast otp-toast info';
-  toast.innerHTML = '<i class="fa-solid fa-key"></i><div><strong>Your OTP is: ' + otp + '</strong><br><small>(simulated)</small></div><button class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText(\'' + otp + '\');showToast(\'OTP copied!\',\'success\')" style="margin-left:8px;white-space:nowrap"><i class="fa-solid fa-copy"></i> Copy</button>';
-  container.appendChild(toast);
-  setTimeout(function() { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 10000);
+function googleSignOut() {
+  firebase.auth().signOut().then(function() {
+    showToast('Signed out successfully', 'info');
+  }).catch(function(error) {
+    showToast('Sign-out failed. Please try again.', 'error');
+  });
 }
 
-function resendOTP() {
-  var email = state.currentOTP ? state.currentOTP.email : '';
-  if (!email) { showAuthModal(); return; }
-  sendOTP(email);
-}
-
-function onOtpInput(el, index) {
-  el.value = el.value.replace(/[^0-9]/g, '');
-  if (el.value.length === 1 && index < 5) {
-    var next = document.querySelector('.otp-digit[data-index="' + (index + 1) + '"]');
-    if (next) next.focus();
-  }
-  // Check if all 6 digits filled
-  var digits = document.querySelectorAll('.otp-digit');
-  var otp = '';
-  for (var i = 0; i < digits.length; i++) { otp += digits[i].value; }
-  if (otp.length === 6) { verifyOTP(otp); }
-}
-
-function onOtpKeydown(e, index) {
-  if (e.key === 'Backspace' && !e.target.value && index > 0) {
-    var prev = document.querySelector('.otp-digit[data-index="' + (index - 1) + '"]');
-    if (prev) { prev.focus(); prev.value = ''; }
+function initFirebaseAuth() {
+  firebase.auth().onAuthStateChanged(function(user) {
+    if (user) {
+      updateAuthUI(user);
+      hideAuthModal();
+    } else {
+      updateAuthUI(null);
+      showAuthModal();
+    }
+  });
+  // Bind Google Sign-In button
+  var signInBtn = document.getElementById('googleSignInBtn');
+  if (signInBtn) {
+    signInBtn.addEventListener('click', googleSignIn);
   }
 }
 
-function verifyOTPFromInputs() {
-  var digits = document.querySelectorAll('.otp-digit');
-  var otp = '';
-  for (var i = 0; i < digits.length; i++) { otp += digits[i].value; }
-  if (otp.length < 6) { showToast('Please enter all 6 digits', 'warning'); return; }
-  verifyOTP(otp);
-}
-
-function verifyOTP(enteredOTP) {
-  if (!state.currentOTP) { showToast('No OTP requested. Please try again.', 'error'); return; }
-  var now = Date.now();
-  var elapsed = now - state.currentOTP.timestamp;
-  if (elapsed > 5 * 60 * 1000) {
-    showToast('OTP expired. Please request a new one.', 'error');
-    return;
-  }
-  if (enteredOTP !== state.currentOTP.code) {
-    showToast('Invalid OTP. Please try again.', 'error');
-    var digits = document.querySelectorAll('.otp-digit');
-    for (var i = 0; i < digits.length; i++) { digits[i].value = ''; }
-    var first = document.querySelector('.otp-digit[data-index="0"]');
-    if (first) first.focus();
-    return;
-  }
-  // Success - create user and session
-  var email = state.currentOTP.email;
-  var namePart = email.split('@')[0];
-  var name = namePart.charAt(0).toUpperCase() + namePart.slice(1).replace(/[._-]/g, ' ');
-  if (!state.users) state.users = {};
-  state.users[email] = { email: email, name: name };
-  state.session = { email: email, name: name, loginTimestamp: Date.now(), isAuthenticated: true };
-  state.currentOTP = null;
-  saveState();
-  hideAuthModal();
-  updateAuthUI(true);
-  showToast('Welcome, ' + name + '!', 'success');
-}
-
-function signOut() {
-  state.session = null;
-  saveState();
-  updateAuthUI(false);
-  showToast('Signed out successfully', 'info');
-}
-
-function updateAuthUI(isLoggedIn) {
+function updateAuthUI(user) {
   var loggedOut = document.getElementById('sidebarLoggedOut');
   var logged_in = document.getElementById('sidebarLoggedIn');
-  if (isLoggedIn && state.session) {
+  if (user) {
+    // User is signed in
     loggedOut.style.display = 'none';
     logged_in.style.display = 'flex';
-    document.getElementById('userAvatar').textContent = state.session.name.charAt(0).toUpperCase();
-    document.getElementById('userName').textContent = state.session.name;
+
+    var avatarEl = document.getElementById('userAvatar');
+    // Clear previous avatar content
+    avatarEl.innerHTML = '';
+
+    if (user.photoURL) {
+      var img = document.createElement('img');
+      img.src = user.photoURL;
+      img.alt = 'Avatar';
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.borderRadius = '50%';
+      img.style.objectFit = 'cover';
+      avatarEl.appendChild(img);
+    } else {
+      var displayName = user.displayName || '';
+      var emailPrefix = user.email ? user.email.split('@')[0] : '';
+      var letter = (displayName || emailPrefix || '?').charAt(0).toUpperCase();
+      avatarEl.textContent = letter;
+    }
+
+    var displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
+    document.getElementById('userName').textContent = displayName;
   } else {
+    // User is signed out
     loggedOut.style.display = 'block';
     logged_in.style.display = 'none';
   }
 }
 
 function checkAuth() {
-  if (!state.session || !state.session.isAuthenticated) {
+  var user = firebase.auth().currentUser;
+  if (!user) {
     showAuthModal();
     return false;
   }
