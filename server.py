@@ -1,4 +1,4 @@
-# ResellFlow.ai - Static Site
+# ResellFlowAI - Static Site
 # This project is served as a static site by EdgeOne Pages.
 # No Flask backend is needed. All logic runs client-side with localStorage.
 #

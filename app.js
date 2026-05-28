@@ -1,4 +1,4 @@
-/* ===== ResellFlow.ai - Full Application Logic ===== */
+/* ===== ResellFlowAI - Full Application Logic ===== */
 
 // ===== STATE =====
 var STATE_KEY = 'resellflow_data';
@@ -1649,7 +1649,7 @@ function generatePoster() {
   ctx.font = '400 ' + Math.max(10, Math.min(canvas.width, canvas.height) * 0.025) + 'px Inter, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('ResellFlow.ai', canvas.width / 2, canvas.height * 0.95);
+  ctx.fillText('ResellFlowAI', canvas.width / 2, canvas.height * 0.95);
   ctx.restore();
 
   document.getElementById('poster-preview-wrap').style.display = 'block';
@@ -1713,7 +1713,7 @@ function downloadPoster() {
   offCtx.font = '400 ' + Math.max(10, Math.min(dims[0], dims[1]) * 0.025) + 'px Inter, sans-serif';
   offCtx.textAlign = 'center';
   offCtx.textBaseline = 'middle';
-  offCtx.fillText('ResellFlow.ai', dims[0] / 2, dims[1] * 0.95);
+  offCtx.fillText('ResellFlowAI', dims[0] / 2, dims[1] * 0.95);
   offCtx.restore();
 
   var link = document.createElement('a');
