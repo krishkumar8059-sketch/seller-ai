@@ -4,6 +4,7 @@
 var STATE_KEY = 'resellflow_data';
 var state = loadState();
 var posterUploadedImage = null;
+var _redirectInProgress = false;
 
 function defaultState() {
   return {
@@ -82,7 +83,6 @@ document.addEventListener('keydown', function(e) {
 });
 
 window.addEventListener('DOMContentLoaded', function() {
-  checkAuth();
   handleRoute();
   initAuth();
   renderReminders();
@@ -556,8 +556,6 @@ function showAuthModal() {
 }
 
 function hideAuthModal() {
-  var user = firebase.auth().currentUser;
-  if (!user) return; // Block dismissal without auth
   var modal = document.getElementById('authModal');
   if (modal) {
     modal.classList.remove('active');
@@ -570,6 +568,7 @@ function googleSignIn() {
   var provider = new firebase.auth.GoogleAuthProvider();
   provider.addScope('email');
   provider.setCustomParameters({ prompt: 'select_account' });
+  _redirectInProgress = true;
   firebase.auth().signInWithRedirect(provider);
 }
 
@@ -594,26 +593,34 @@ function initFirebaseAuth() {
 
   // Handle redirect result (when returning from Google sign-in page)
   firebase.auth().getRedirectResult().then(function(result) {
+    _redirectInProgress = false;
     if (result.user) {
-      // User just signed in via redirect
       hideAuthModal();
       updateAuthUI(result.user);
       showToast('Welcome, ' + (result.user.displayName || result.user.email) + '!', 'success');
     }
   }).catch(function(error) {
+    _redirectInProgress = false;
     if (error.code === 'auth/unauthorized-domain') {
       showToast('Domain not authorized. Please add this domain to Firebase Console > Authentication > Settings > Authorized domains.', 8000);
     } else {
-      showToast('Sign-in error: ' + error.message, 'error');
+      showToast('Sign-in error: ' + error.message, 5000);
     }
   });
 
-  // Listen for auth state changes (handles page reload persistence)
+  // Listen for auth state changes - SINGLE SOURCE OF TRUTH
   firebase.auth().onAuthStateChanged(function(user) {
     if (user) {
+      // User is signed in - always hide modal and update UI
       hideAuthModal();
       updateAuthUI(user);
     } else {
+      // User is signed out
+      if (_redirectInProgress) {
+        // Don't show modal - redirect result is still pending
+        return;
+      }
+      // Genuine signed-out state - show auth modal
       updateAuthUI(null);
       showAuthModal();
     }
