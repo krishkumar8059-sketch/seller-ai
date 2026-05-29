@@ -4,7 +4,6 @@
 var STATE_KEY = 'resellflow_data';
 var state = loadState();
 var posterUploadedImage = null;
-var _redirectInProgress = false;
 
 function defaultState() {
   return {
@@ -13,6 +12,8 @@ function defaultState() {
     reminders: [],
     generations: [],
     settings: { lang: 'en', theme: 'dark', selectedTemplate: 'minimalist', selectedPalette: 'neonglow' },
+    currentOTP: null,
+    session: null,
     lastSave: Date.now()
   };
 }
@@ -37,7 +38,7 @@ function saveState() {
 var VALID_SECTIONS = ['home', 'core', 'marketing', 'design', 'platform', 'business', 'premium'];
 
 function navigateTo(section) {
-  if (!firebase.auth().currentUser) {
+  if (!isAuthenticated()) {
     showAuthModal();
     return;
   }
@@ -45,7 +46,7 @@ function navigateTo(section) {
 }
 
 function handleRoute() {
-  if (!firebase.auth().currentUser) {
+  if (!isAuthenticated()) {
     showAuthModal();
     return;
   }
@@ -161,7 +162,7 @@ function trackGeneration(type, input, output) {
 
 // Product Description Generator
 function generateProductDescription() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var name = document.getElementById('pd-name').value.trim();
   if (!name) { showToast('Please enter a product name', 'warning'); return; }
   var category = document.getElementById('pd-category').value;
@@ -200,7 +201,7 @@ function generateProductDescription() {
 
 // Save to catalog from product description
 function saveToCatalog() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var name = document.getElementById('pd-name').value.trim();
   if (!name) return;
   var category = document.getElementById('pd-category').value;
@@ -221,7 +222,7 @@ function saveToCatalog() {
 
 // Ad Creative Generator
 function generateAdCreative() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var product = document.getElementById('ad-product').value.trim();
   if (!product) { showToast('Please enter a product name', 'warning'); return; }
   var platform = document.getElementById('ad-platform').value;
@@ -278,7 +279,7 @@ function categoryFromProduct(name) {
 
 // Smart Price Suggestion
 function generatePriceSuggestion() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var product = document.getElementById('sp-product').value.trim();
   if (!product) { showToast('Please enter a product name', 'warning'); return; }
   var category = document.getElementById('sp-category').value;
@@ -316,7 +317,7 @@ function generatePriceSuggestion() {
 
 // Trending Product Finder
 function findTrendingProducts() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var category = document.getElementById('tp-category').value;
   var sortBy = document.getElementById('tp-sort').value;
 
@@ -388,7 +389,7 @@ function findTrendingProducts() {
 
 // Short Video Script Generator
 function generateVideoScript() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var product = document.getElementById('vs-product').value.trim();
   if (!product) { showToast('Please enter a product name', 'warning'); return; }
   var videoType = document.getElementById('vs-type').value;
@@ -428,7 +429,7 @@ function generateVideoScript() {
 
 // Caption and Hashtag Generator
 function generateCaptionHashtag() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var product = document.getElementById('ch-product').value.trim();
   if (!product) { showToast('Please enter a product or niche', 'warning'); return; }
   var style = document.getElementById('ch-style').value;
@@ -478,7 +479,7 @@ function generateCaptionHashtag() {
 
 // Marketing Reminder System
 function addReminder() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var title = document.getElementById('mr-title').value.trim();
   if (!title) { showToast('Please enter a reminder title', 'warning'); return; }
   var datetime = document.getElementById('mr-datetime').value;
@@ -541,7 +542,7 @@ function deleteReminder(id) {
   showToast('Reminder deleted', 'info');
 }
 
-// ===== AUTH SYSTEM (Firebase Google Sign-In) =====
+// ===== AUTH SYSTEM (Firebase Google Sign-In + Email/OTP Fallback) =====
 
 function initAuth() {
   initFirebaseAuth();
@@ -561,26 +562,188 @@ function hideAuthModal() {
     modal.classList.remove('active');
     modal.style.display = 'none';
   }
+  // Reset forms to initial state (show Google form for next time)
+  var googleForm = document.getElementById('authGoogleForm');
+  var emailForm = document.getElementById('authEmailForm');
+  var otpForm = document.getElementById('authOtpForm');
+  if (googleForm) googleForm.style.display = 'block';
+  if (emailForm) emailForm.style.display = 'none';
+  if (otpForm) otpForm.style.display = 'none';
+  // Clear email input
+  var emailInput = document.getElementById('authEmail');
+  if (emailInput) emailInput.value = '';
+  // Clear OTP inputs
+  for (var i = 1; i <= 6; i++) {
+    var otpInput = document.getElementById('otp' + i);
+    if (otpInput) otpInput.value = '';
+  }
 }
 
-// Google Sign-In using redirect (more reliable for cross-domain)
+// Google Sign-In using popup (handles unauthorized-domain gracefully)
 function googleSignIn() {
   var provider = new firebase.auth.GoogleAuthProvider();
   provider.addScope('email');
   provider.setCustomParameters({ prompt: 'select_account' });
-  _redirectInProgress = true;
-  firebase.auth().signInWithRedirect(provider);
+  firebase.auth().signInWithPopup(provider).then(function(result) {
+    if (result.user) {
+      hideAuthModal();
+      updateAuthUI(result.user);
+      showToast('Welcome, ' + (result.user.displayName || result.user.email) + '!', 'success');
+    }
+  }).catch(function(error) {
+    if (error.code === 'auth/unauthorized-domain') {
+      showToast('Google Sign-In not available on this domain. Please use Email sign-in instead.', 6000, 'warning');
+      showEmailAuthForm();
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      // User closed popup, do nothing
+    } else {
+      showToast('Sign-in error: ' + error.message, 5000, 'error');
+    }
+  });
 }
 
 // Sign out
 function googleSignOut() {
-  firebase.auth().signOut().then(function() {
-    updateAuthUI(null);
-    showAuthModal();
-    showToast('Signed out successfully', 'info');
-  }).catch(function(error) {
-    showToast('Sign out failed: ' + error.message, 'error');
-  });
+  // Sign out from Firebase if applicable
+  if (firebase.auth().currentUser) {
+    firebase.auth().signOut();
+  }
+  // Clear localStorage session
+  delete state.session;
+  saveState();
+  updateAuthUI(null);
+  showAuthModal();
+  showToast('Signed out successfully', 'info');
+}
+
+// Show email sign-in form (fallback when Google auth fails)
+function showEmailAuthForm() {
+  var googleForm = document.getElementById('authGoogleForm');
+  var emailForm = document.getElementById('authEmailForm');
+  if (googleForm) googleForm.style.display = 'none';
+  if (emailForm) emailForm.style.display = 'block';
+}
+
+// Show Google sign-in form
+function showGoogleAuthForm() {
+  var googleForm = document.getElementById('authGoogleForm');
+  var emailForm = document.getElementById('authEmailForm');
+  if (googleForm) googleForm.style.display = 'block';
+  if (emailForm) emailForm.style.display = 'none';
+}
+
+// Show OTP verification form
+function showOtpForm(email) {
+  var emailForm = document.getElementById('authEmailForm');
+  var otpForm = document.getElementById('authOtpForm');
+  if (emailForm) emailForm.style.display = 'none';
+  if (otpForm) otpForm.style.display = 'block';
+  var display = document.getElementById('otpEmailDisplay');
+  if (display) display.textContent = email;
+}
+
+// Send simulated OTP
+function sendOTP() {
+  var emailInput = document.getElementById('authEmail');
+  if (!emailInput || !emailInput.value || !emailInput.value.includes('@')) {
+    showToast('Please enter a valid email address', 'warning');
+    return;
+  }
+  var email = emailInput.value.trim();
+  var otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Store OTP in state
+  state.currentOTP = { code: otp, email: email, timestamp: Date.now(), expiresAt: Date.now() + 5 * 60 * 1000 };
+  saveState();
+
+  showToast('Your OTP is: ' + otp + ' (simulated)', 10000, 'info');
+  showOtpForm(email);
+
+  // Focus first OTP digit
+  var firstDigit = document.getElementById('otp1');
+  if (firstDigit) firstDigit.focus();
+}
+
+// Verify OTP
+function verifyOTP() {
+  var digits = [];
+  for (var i = 1; i <= 6; i++) {
+    var input = document.getElementById('otp' + i);
+    if (input) digits.push(input.value);
+  }
+  var enteredCode = digits.join('');
+
+  if (!state.currentOTP) {
+    showToast('No OTP found. Please request a new one.', 'warning');
+    return;
+  }
+
+  if (Date.now() > state.currentOTP.expiresAt) {
+    showToast('OTP expired. Please request a new one.', 'warning');
+    return;
+  }
+
+  if (enteredCode === state.currentOTP.code) {
+    // Create user session from email
+    var email = state.currentOTP.email;
+    var name = email.split('@')[0];
+    state.session = { email: email, name: name, loginTimestamp: Date.now(), isAuthenticated: true };
+    delete state.currentOTP;
+    saveState();
+    hideAuthModal();
+    updateAuthUIFromSession();
+    showToast('Welcome, ' + name + '!', 'success');
+  } else {
+    showToast('Invalid OTP. Please try again.', 'error');
+  }
+}
+
+// OTP input handlers
+function onOtpInput(e, index) {
+  var input = e.target;
+  // Only allow digits
+  input.value = input.value.replace(/[^0-9]/g, '');
+  if (input.value.length === 1 && index < 6) {
+    var next = document.getElementById('otp' + (index + 1));
+    if (next) next.focus();
+  }
+  // Auto-submit when all 6 digits filled
+  var allFilled = true;
+  for (var i = 1; i <= 6; i++) {
+    var inp = document.getElementById('otp' + i);
+    if (!inp || !inp.value) { allFilled = false; break; }
+  }
+  if (allFilled) verifyOTP();
+}
+
+function onOtpKeydown(e, index) {
+  if (e.key === 'Backspace' && !e.target.value && index > 1) {
+    var prev = document.getElementById('otp' + (index - 1));
+    if (prev) { prev.value = ''; prev.focus(); }
+  }
+}
+
+function resendOTP() {
+  if (state.currentOTP && state.currentOTP.email) {
+    sendOTP();
+  }
+}
+
+// Update UI from localStorage session (for email-authenticated users)
+function updateAuthUIFromSession() {
+  if (state.session && state.session.isAuthenticated) {
+    var loggedOut = document.getElementById('sidebarLoggedOut');
+    var loggedIn = document.getElementById('sidebarLoggedIn');
+    var avatarEl = document.getElementById('userAvatar');
+
+    if (loggedOut) loggedOut.style.display = 'none';
+    if (loggedIn) loggedIn.style.display = 'flex';
+    if (avatarEl) {
+      avatarEl.innerHTML = '';
+      avatarEl.textContent = state.session.name.charAt(0).toUpperCase();
+    }
+    document.getElementById('userName').textContent = state.session.name;
+  }
 }
 
 // Initialize Firebase Auth
@@ -591,38 +754,57 @@ function initFirebaseAuth() {
     signInBtn.addEventListener('click', googleSignIn);
   }
 
-  // Handle redirect result (when returning from Google sign-in page)
-  firebase.auth().getRedirectResult().then(function(result) {
-    _redirectInProgress = false;
-    if (result.user) {
-      hideAuthModal();
-      updateAuthUI(result.user);
-      showToast('Welcome, ' + (result.user.displayName || result.user.email) + '!', 'success');
-    }
-  }).catch(function(error) {
-    _redirectInProgress = false;
-    if (error.code === 'auth/unauthorized-domain') {
-      showToast('Domain not authorized. Please add this domain to Firebase Console > Authentication > Settings > Authorized domains.', 8000);
-    } else {
-      showToast('Sign-in error: ' + error.message, 5000);
-    }
-  });
+  // Email sign-in button
+  var emailSignInBtn = document.getElementById('emailSignInBtn');
+  if (emailSignInBtn) emailSignInBtn.addEventListener('click', showEmailAuthForm);
 
-  // Listen for auth state changes - SINGLE SOURCE OF TRUTH
+  // Back to Google button
+  var backToGoogleBtn = document.getElementById('backToGoogleBtn');
+  if (backToGoogleBtn) backToGoogleBtn.addEventListener('click', showGoogleAuthForm);
+
+  // Send OTP button
+  var sendOtpBtn = document.getElementById('sendOtpBtn');
+  if (sendOtpBtn) sendOtpBtn.addEventListener('click', sendOTP);
+
+  // Verify OTP button
+  var verifyOtpBtn = document.getElementById('verifyOtpBtn');
+  if (verifyOtpBtn) verifyOtpBtn.addEventListener('click', verifyOTP);
+
+  // OTP digit inputs
+  for (var i = 1; i <= 6; i++) {
+    (function(idx) {
+      var input = document.getElementById('otp' + idx);
+      if (input) {
+        input.addEventListener('input', function(e) { onOtpInput(e, idx); });
+        input.addEventListener('keydown', function(e) { onOtpKeydown(e, idx); });
+      }
+    })(i);
+  }
+
+  // Resend OTP
+  var resendLink = document.getElementById('resendOtpLink');
+  if (resendLink) resendLink.addEventListener('click', function(e) { e.preventDefault(); resendOTP(); });
+
+  // Enter key on email input
+  var authEmailInput = document.getElementById('authEmail');
+  if (authEmailInput) authEmailInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') sendOTP(); });
+
+  // Single source of truth for auth state
   firebase.auth().onAuthStateChanged(function(user) {
     if (user) {
-      // User is signed in - always hide modal and update UI
+      // User is signed in via Firebase - always hide modal and update UI
       hideAuthModal();
       updateAuthUI(user);
     } else {
-      // User is signed out
-      if (_redirectInProgress) {
-        // Don't show modal - redirect result is still pending
-        return;
+      // Check if user has localStorage session (email auth)
+      if (state.session && state.session.isAuthenticated) {
+        hideAuthModal();
+        updateAuthUIFromSession();
+      } else {
+        // Genuine signed-out state - show auth modal
+        updateAuthUI(null);
+        showAuthModal();
       }
-      // Genuine signed-out state - show auth modal
-      updateAuthUI(null);
-      showAuthModal();
     }
   });
 }
@@ -633,7 +815,7 @@ function updateAuthUI(user) {
   var loggedIn = document.getElementById('sidebarLoggedIn');
 
   if (user) {
-    // User is signed in
+    // Firebase Google user
     loggedOut.style.display = 'none';
     loggedIn.style.display = 'flex';
 
@@ -652,19 +834,33 @@ function updateAuthUI(user) {
       avatarEl.textContent = letter;
     }
 
-    var displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
-    document.getElementById('userName').textContent = displayName;
+    var name = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
+    document.getElementById('userName').textContent = name;
+
+    // Also save to localStorage session
+    var email = user.email || '';
+    state.session = { email: email, name: name, loginTimestamp: Date.now(), isAuthenticated: true };
+    saveState();
   } else {
-    // User is signed out
+    // Check localStorage session (for email-authenticated users)
+    if (state.session && state.session.isAuthenticated) {
+      updateAuthUIFromSession();
+      return;
+    }
+
+    // No user at all
     loggedOut.style.display = 'block';
     loggedIn.style.display = 'none';
   }
 }
 
-// Check if user is authenticated
+// Check if user is authenticated (Firebase or localStorage session)
+function isAuthenticated() {
+  return !!(firebase.auth().currentUser || (state.session && state.session.isAuthenticated));
+}
+
 function checkAuth() {
-  var user = firebase.auth().currentUser;
-  if (!user) {
+  if (!isAuthenticated()) {
     showAuthModal();
     return false;
   }
@@ -1641,7 +1837,7 @@ function drawEventFlyer(canvas, ctx, data) {
 
 // Main generatePoster - replaced with premium engine
 function generatePoster() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var headline = document.getElementById('ps-headline').value.trim() || 'MEGA SALE';
   var subhead = document.getElementById('ps-subhead').value.trim() || 'Up to 70% Off';
   var body = document.getElementById('ps-body').value.trim();
@@ -1704,7 +1900,7 @@ function generatePoster() {
 }
 
 function downloadPoster() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var canvas = document.getElementById('posterCanvas');
   var selectedTemplate = (state.settings && state.settings.selectedTemplate) || 'minimalist';
   var selectedPalette = (state.settings && state.settings.selectedPalette) || 'neonglow';
@@ -1772,7 +1968,7 @@ function downloadPoster() {
 
 // Festival Sale Templates
 function loadFestivalTemplate(festival) {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var templates = {
     diwali: {
       headline: 'DIWALI MEGA SALE',
@@ -1819,7 +2015,7 @@ function loadFestivalTemplate(festival) {
 
 // Auto Brand Kit Generator
 function generateBrandKit() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var name = document.getElementById('bk-name').value.trim();
   if (!name) { showToast('Please enter a business name', 'warning'); return; }
   var industry = document.getElementById('bk-industry').value;
@@ -1892,7 +2088,7 @@ function updateMobileDashboard() {
 
 // ===== CLOUD SAVE =====
 function exportData() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var data = JSON.stringify(state, null, 2);
   var blob = new Blob([data], { type: 'application/json' });
   var url = URL.createObjectURL(blob);
@@ -1905,7 +2101,7 @@ function exportData() {
 }
 
 function importData(event) {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var file = event.target.files[0];
   if (!file) return;
   var reader = new FileReader();
@@ -1928,7 +2124,7 @@ function importData(event) {
 }
 
 function clearAllData() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   if (!confirm('Are you sure you want to delete all data? This cannot be undone.')) return;
   state = defaultState();
   saveState();
@@ -2001,7 +2197,7 @@ var translations = {
 };
 
 function switchLanguage(lang) {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   state.settings.lang = lang;
   saveState();
   var t = translations[lang] || translations.en;
@@ -2039,7 +2235,7 @@ var notificationPool = [
 ];
 
 function refreshNotifications() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var feed = document.getElementById('notification-feed');
   feed.innerHTML = '';
   for (var i = 0; i < notificationPool.length; i++) {
@@ -2136,7 +2332,7 @@ function updateAnalytics() {
 
 // ===== CUSTOMER LEAD MANAGEMENT =====
 function addLead() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var name = document.getElementById('cl-name').value.trim();
   if (!name) { showToast('Please enter a customer name', 'warning'); return; }
   var contact = document.getElementById('cl-contact').value.trim();
@@ -2208,12 +2404,12 @@ function deleteLead(id) {
 
 // ===== PRODUCT CATALOG =====
 function openAddProductModal() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   openModal('addProductModal');
 }
 
 function addProduct() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var name = document.getElementById('ap-name').value.trim();
   if (!name) { showToast('Please enter a product name', 'warning'); return; }
   var category = document.getElementById('ap-category').value;
@@ -2304,7 +2500,7 @@ function deleteProduct(id) {
 
 // ===== PREMIUM DEMO FEATURES =====
 function tryVoiceover() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var output = document.getElementById('vo-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>Voiceover Demo</h3>' +
@@ -2321,7 +2517,7 @@ function tryVoiceover() {
 }
 
 function tryVideoAd() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var output = document.getElementById('vac-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>Video Ad Demo</h3>' +
@@ -2339,7 +2535,7 @@ function tryVideoAd() {
 }
 
 function tryShopifyIntegration() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var output = document.getElementById('si-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>Shopify &amp; Meesho Integration Demo</h3>' +
@@ -2362,7 +2558,7 @@ function tryShopifyIntegration() {
 }
 
 function tryWhatsAppIntegration() {
-  if (!firebase.auth().currentUser) { showAuthModal(); return; }
+  if (!isAuthenticated()) { showAuthModal(); return; }
   var output = document.getElementById('wa-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>WhatsApp Integration Demo</h3>' +
