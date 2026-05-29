@@ -1,6 +1,12 @@
 {
   "buildCommand": "echo 'Static site - no build needed'",
   "outputDirectory": ".",
+  "cloudFunctions": {
+    "nodejs": {
+      "runtime": "nodejs18",
+      "maxDuration": 30
+    }
+  },
   "caches": [
     {
       "source": "/assets/*",

@@ -18,6 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="style.css">
+<script src="https://js.stripe.com/v3/stripe.js"></script>
 </head>
 <body>
 
@@ -35,6 +36,7 @@
       <div class="user-avatar" id="userAvatar"></div>
       <div class="user-info">
         <span class="user-name" id="userName"></span>
+        <span id="premiumBadge" class="premium-badge" style="display:none;">PRO</span>
       </div>
       <button class="btn btn-outline btn-sm sidebar-signout-btn" onclick="googleSignOut()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out</button>
     </div>
@@ -60,6 +62,9 @@
     </a>
     <a href="#premium" class="nav-item" data-section="premium">
       <i class="fa-solid fa-crown"></i><span>Premium</span>
+    </a>
+    <a href="#pricing" class="nav-item" data-section="pricing">
+      <i class="fa-solid fa-tag"></i><span>Pricing</span>
     </a>
   </nav>
   <div class="sidebar-footer">
@@ -92,10 +97,15 @@
   <a href="#premium" class="bottom-nav-item" data-section="premium">
     <i class="fa-solid fa-crown"></i><span>Premium</span>
   </a>
+  <a href="#pricing" class="bottom-nav-item" data-section="pricing">
+    <i class="fa-solid fa-tag"></i><span>Pricing</span>
+  </a>
 </nav>
 
 <!-- Main Content -->
 <main class="main-content" id="mainContent">
+
+  <div id="paymentNotification" class="payment-notification" style="display:none;"></div>
 
   <!-- HOME SECTION -->
   <section class="page-section active" id="section-home">
@@ -958,6 +968,68 @@
     </div>
   </section>
 
+  <!-- PRICING SECTION -->
+  <section class="page-section" id="section-pricing">
+    <div class="section-header">
+      <h1><i class="fa-solid fa-tag"></i> Pricing</h1>
+      <p>Choose the plan that works best for you</p>
+    </div>
+
+    <!-- Pricing Section -->
+    <div id="pricing-section">
+      <div class="pricing-cards">
+        <!-- Free Plan -->
+        <div class="pricing-card">
+          <div class="pricing-card-header">
+            <h3>Free</h3>
+            <div class="pricing-amount">$0<span>/forever</span></div>
+          </div>
+          <ul class="pricing-features">
+            <li class="included">AI Product Descriptions</li>
+            <li class="included">Ad Creative Generator</li>
+            <li class="included">Smart Price Suggestion</li>
+            <li class="included">Trending Product Finder</li>
+            <li class="included">Video Script Generator</li>
+            <li class="included">Caption & Hashtag Generator</li>
+            <li class="included">Marketing Reminders</li>
+            <li class="included">Poster Maker (with watermark)</li>
+            <li class="included">Festival Templates</li>
+            <li class="included">Brand Kit Generator</li>
+            <li class="included">Cloud Save</li>
+            <li class="included">Multi-Language Support</li>
+            <li class="excluded">No Watermark Downloads</li>
+            <li class="excluded">HD Export Quality</li>
+            <li class="excluded">AI Voiceover Generator</li>
+            <li class="excluded">AI Video Ad Creator</li>
+            <li class="excluded">Shopify & Meesho Integration</li>
+            <li class="excluded">WhatsApp Business Integration</li>
+          </ul>
+          <button class="pricing-btn current-plan" disabled>Current Plan</button>
+        </div>
+        <!-- Premium Plan -->
+        <div class="pricing-card premium">
+          <div class="pricing-badge">Most Popular</div>
+          <div class="pricing-card-header">
+            <h3>Premium</h3>
+            <div class="pricing-amount">$9.99<span>/one-time</span></div>
+          </div>
+          <ul class="pricing-features">
+            <li class="included">Everything in Free, plus:</li>
+            <li class="included premium-feature">No Watermark Downloads</li>
+            <li class="included premium-feature">HD Export Quality</li>
+            <li class="included premium-feature">AI Voiceover Generator</li>
+            <li class="included premium-feature">AI Video Ad Creator</li>
+            <li class="included premium-feature">Shopify & Meesho Integration</li>
+            <li class="included premium-feature">WhatsApp Business Integration</li>
+            <li class="included premium-feature">Priority Support</li>
+            <li class="included premium-feature">Early Access to New Features</li>
+          </ul>
+          <button id="checkoutBtn" class="pricing-btn premium-btn">Upgrade to Premium</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- PREMIUM SECTION -->
   <section class="page-section" id="section-premium">
     <div class="section-header">
@@ -970,7 +1042,7 @@
       <div class="premium-badge">👑 PREMIUM</div>
       <h2>Unlock the Full Power of ResellFlowAI</h2>
       <p>Get unlimited AI generations, HD exports, watermark-free content, and early access to upcoming features.</p>
-      <button class="btn btn-premium btn-lg" onclick="showToast('Premium upgrade coming soon! Stay tuned.','info')">Upgrade to Premium</button>
+      <button class="btn btn-premium btn-lg" id="premiumUpgradeBtn">Upgrade to Premium</button>
     </div>
 
     <!-- Premium Features Grid -->

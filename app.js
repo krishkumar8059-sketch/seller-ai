@@ -35,7 +35,7 @@ function saveState() {
 }
 
 // ===== SPA ROUTER =====
-var VALID_SECTIONS = ['home', 'core', 'marketing', 'design', 'platform', 'business', 'premium'];
+var VALID_SECTIONS = ['home', 'core', 'marketing', 'design', 'platform', 'business', 'premium', 'pricing'];
 
 function navigateTo(section) {
   if (!isAuthenticated()) {
@@ -92,6 +92,11 @@ window.addEventListener('DOMContentLoaded', function() {
   updateMobileDashboard();
   updateStorageStats();
   applyTheme();
+  handlePaymentReturn();
+  var checkoutBtn = document.getElementById('checkoutBtn');
+  if (checkoutBtn) checkoutBtn.addEventListener('click', startCheckout);
+  var premiumUpgradeBtn = document.getElementById('premiumUpgradeBtn');
+  if (premiumUpgradeBtn) premiumUpgradeBtn.addEventListener('click', function() { navigateTo('pricing'); });
 });
 
 // ===== THEME =====
@@ -588,6 +593,7 @@ function googleSignIn() {
     if (result.user) {
       hideAuthModal();
       updateAuthUI(result.user);
+      updatePremiumUI();
       showToast('Welcome, ' + (result.user.displayName || result.user.email) + '!', 'success');
     }
   }).catch(function(error) {
@@ -692,6 +698,7 @@ function verifyOTP() {
     saveState();
     hideAuthModal();
     updateAuthUIFromSession();
+    updatePremiumUI();
     showToast('Welcome, ' + name + '!', 'success');
   } else {
     showToast('Invalid OTP. Please try again.', 'error');
@@ -795,11 +802,13 @@ function initFirebaseAuth() {
       // User is signed in via Firebase - always hide modal and update UI
       hideAuthModal();
       updateAuthUI(user);
+      updatePremiumUI();
     } else {
       // Check if user has localStorage session (email auth)
       if (state.session && state.session.isAuthenticated) {
         hideAuthModal();
         updateAuthUIFromSession();
+        updatePremiumUI();
       } else {
         // Genuine signed-out state - show auth modal
         updateAuthUI(null);
@@ -1912,7 +1921,10 @@ function downloadPoster() {
   var badge = document.getElementById('ps-badge').value.trim();
   var size = document.getElementById('ps-size').value;
 
-  // Create 2x resolution offscreen canvas
+  // Premium: 2x HD without watermark; Free: 1x with watermark
+  var scale = isPremiumUser() ? 2 : 1;
+  var showWatermark = !isPremiumUser();
+
   var sizeMap = {
     'instagram-post': [600, 600],
     'instagram-story': [360, 640],
@@ -1921,10 +1933,10 @@ function downloadPoster() {
   };
   var dims = sizeMap[size] || sizeMap['instagram-post'];
   var offCanvas = document.createElement('canvas');
-  offCanvas.width = dims[0] * 2;
-  offCanvas.height = dims[1] * 2;
+  offCanvas.width = dims[0] * scale;
+  offCanvas.height = dims[1] * scale;
   var offCtx = offCanvas.getContext('2d');
-  offCtx.scale(2, 2);
+  offCtx.scale(scale, scale);
 
   var data = {
     headline: headline,
@@ -1950,20 +1962,22 @@ function downloadPoster() {
   var drawFn = templateFns[selectedTemplate] || drawMinimalist;
   drawFn(offCanvas, offCtx, data);
 
-  // Brand watermark
-  offCtx.save();
-  offCtx.fillStyle = 'rgba(255,255,255,0.4)';
-  offCtx.font = '400 ' + Math.max(10, Math.min(dims[0], dims[1]) * 0.025) + 'px Inter, sans-serif';
-  offCtx.textAlign = 'center';
-  offCtx.textBaseline = 'middle';
-  offCtx.fillText('ResellFlowAI', dims[0] / 2, dims[1] * 0.95);
-  offCtx.restore();
+  // Brand watermark (only for free users)
+  if (showWatermark) {
+    offCtx.save();
+    offCtx.fillStyle = 'rgba(255,255,255,0.4)';
+    offCtx.font = '400 ' + Math.max(10, Math.min(dims[0], dims[1]) * 0.025) + 'px Inter, sans-serif';
+    offCtx.textAlign = 'center';
+    offCtx.textBaseline = 'middle';
+    offCtx.fillText('ResellFlowAI', dims[0] / 2, dims[1] * 0.95);
+    offCtx.restore();
+  }
 
   var link = document.createElement('a');
-  link.download = 'resellflow-poster-hd.png';
+  link.download = isPremiumUser() ? 'resellflow-poster-hd.png' : 'resellflow-poster.png';
   link.href = offCanvas.toDataURL('image/png', 1.0);
   link.click();
-  showToast('HD Poster downloaded!', 'success');
+  showToast(isPremiumUser() ? 'HD Poster downloaded (no watermark)!' : 'Poster downloaded. Upgrade to Premium for HD without watermark!', isPremiumUser() ? 'success' : 'info');
 }
 
 // Festival Sale Templates
@@ -2498,9 +2512,131 @@ function deleteProduct(id) {
   showToast('Product deleted', 'info');
 }
 
+// ===== STRIPE PAYMENT INTEGRATION =====
+var STRIPE_PUBLISHABLE_KEY = 'pk_test_51TcRg7P36iZaMPQOh6oApw55QbUxGdJ9e8hvQIrhPi4XGeEHeLIGqJ3d5t5gwwOr4JRWys4JeqkqaCdGzkiC0AMT00aCSsEJQ2';
+
+function isPremiumUser() {
+  var session = state.session || {};
+  return session.isPremium === true;
+}
+
+function setPremiumStatus(isPremium) {
+  if (!state.session) state.session = {};
+  state.session.isPremium = isPremium;
+  saveState();
+  updatePremiumUI();
+}
+
+function updatePremiumUI() {
+  var badge = document.getElementById('premiumBadge');
+  var checkoutBtn = document.getElementById('checkoutBtn');
+
+  if (isPremiumUser()) {
+    if (badge) badge.style.display = 'inline-block';
+    if (checkoutBtn) {
+      checkoutBtn.textContent = 'Premium Active';
+      checkoutBtn.disabled = true;
+      checkoutBtn.classList.add('current-plan');
+    }
+    // Hide pricing section since user is premium
+    var pricingSection = document.getElementById('pricing-section');
+    if (pricingSection) pricingSection.style.display = 'none';
+  } else {
+    if (badge) badge.style.display = 'none';
+    if (checkoutBtn) {
+      checkoutBtn.textContent = 'Upgrade to Premium';
+      checkoutBtn.disabled = false;
+      checkoutBtn.classList.remove('current-plan');
+    }
+    var pricingSection = document.getElementById('pricing-section');
+    if (pricingSection) pricingSection.style.display = 'block';
+  }
+}
+
+function startCheckout() {
+  if (!isAuthenticated()) {
+    showAuthModal();
+    return;
+  }
+
+  var email = '';
+  if (firebase.auth().currentUser && firebase.auth().currentUser.email) {
+    email = firebase.auth().currentUser.email;
+  } else if (state.session && state.session.email) {
+    email = state.session.email;
+  }
+
+  // Show loading state
+  var btn = document.getElementById('checkoutBtn');
+  if (btn) {
+    btn.textContent = 'Processing...';
+    btn.disabled = true;
+  }
+
+  // Call Node Function to create checkout session
+  fetch('/stripe/create-checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email })
+  })
+  .then(function(response) { return response.json(); })
+  .then(function(data) {
+    if (data.url) {
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
+    } else {
+      showToast('Failed to start checkout: ' + (data.error || 'Unknown error'), 'error');
+      if (btn) {
+        btn.textContent = 'Upgrade to Premium';
+        btn.disabled = false;
+      }
+    }
+  })
+  .catch(function(error) {
+    showToast('Checkout unavailable. Please try again later.', 'warning');
+    if (btn) {
+      btn.textContent = 'Upgrade to Premium';
+      btn.disabled = false;
+    }
+  });
+}
+
+function handlePaymentReturn() {
+  var urlParams = new URLSearchParams(window.location.search);
+  var paymentStatus = urlParams.get('payment');
+
+  if (paymentStatus === 'success') {
+    setPremiumStatus(true);
+    showPaymentNotification('success', 'Payment successful! You now have Premium access.');
+    // Clean URL
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+  } else if (paymentStatus === 'cancel') {
+    showPaymentNotification('cancel', 'Payment was cancelled. You can try again anytime.');
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+  }
+}
+
+function showPaymentNotification(type, message) {
+  var notification = document.getElementById('paymentNotification');
+  if (notification) {
+    notification.className = 'payment-notification ' + type;
+    notification.textContent = message;
+    notification.style.display = 'block';
+    setTimeout(function() { notification.style.display = 'none'; }, 8000);
+  }
+}
+
+function showUpgradePrompt() {
+  showToast('This feature requires Premium. Upgrade now to unlock it!', 'warning');
+  // Navigate to pricing section
+  var pricingLink = document.querySelector('[data-section="pricing"]');
+  if (pricingLink) pricingLink.click();
+}
+
 // ===== PREMIUM DEMO FEATURES =====
 function tryVoiceover() {
   if (!isAuthenticated()) { showAuthModal(); return; }
+  if (!isPremiumUser()) { showUpgradePrompt(); return; }
   var output = document.getElementById('vo-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>Voiceover Demo</h3>' +
@@ -2518,6 +2654,7 @@ function tryVoiceover() {
 
 function tryVideoAd() {
   if (!isAuthenticated()) { showAuthModal(); return; }
+  if (!isPremiumUser()) { showUpgradePrompt(); return; }
   var output = document.getElementById('vac-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>Video Ad Demo</h3>' +
@@ -2536,6 +2673,7 @@ function tryVideoAd() {
 
 function tryShopifyIntegration() {
   if (!isAuthenticated()) { showAuthModal(); return; }
+  if (!isPremiumUser()) { showUpgradePrompt(); return; }
   var output = document.getElementById('si-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>Shopify &amp; Meesho Integration Demo</h3>' +
@@ -2559,6 +2697,7 @@ function tryShopifyIntegration() {
 
 function tryWhatsAppIntegration() {
   if (!isAuthenticated()) { showAuthModal(); return; }
+  if (!isPremiumUser()) { showUpgradePrompt(); return; }
   var output = document.getElementById('wa-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>WhatsApp Integration Demo</h3>' +
