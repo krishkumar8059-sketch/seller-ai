@@ -41,6 +41,11 @@
       <button class="btn btn-outline btn-sm sidebar-signout-btn" onclick="googleSignOut()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out</button>
     </div>
   </div>
+  <div id="creditCounter" class="credit-counter">
+    <span class="credit-icon">⚡</span>
+    <span id="creditCount">15</span> credits
+    <span id="planLabel" class="plan-label">Free Trial</span>
+  </div>
   <nav class="sidebar-nav">
     <a href="#home" class="nav-item active" data-section="home">
       <i class="fa-solid fa-house"></i><span>Home</span>
@@ -977,54 +982,117 @@
 
     <!-- Pricing Section -->
     <div id="pricing-section">
+      <!-- Billing Toggle -->
+      <div class="billing-toggle">
+        <button id="monthlyToggle" class="active" onclick="toggleBillingPeriod('monthly')">Monthly</button>
+        <button id="yearlyToggle" onclick="toggleBillingPeriod('yearly')">Yearly</button>
+      </div>
+
       <div class="pricing-cards">
-        <!-- Free Plan -->
+        <!-- Free Trial Plan -->
         <div class="pricing-card">
           <div class="pricing-card-header">
-            <h3>Free</h3>
-            <div class="pricing-amount">$0<span>/forever</span></div>
+            <h3>Free Trial</h3>
+            <div class="pricing-amount">
+              <span class="currency">₹</span>0
+              <span class="period">/forever</span>
+            </div>
           </div>
           <ul class="pricing-features">
-            <li class="included">AI Product Descriptions</li>
-            <li class="included">Ad Creative Generator</li>
-            <li class="included">Smart Price Suggestion</li>
-            <li class="included">Trending Product Finder</li>
-            <li class="included">Video Script Generator</li>
-            <li class="included">Caption & Hashtag Generator</li>
-            <li class="included">Marketing Reminders</li>
-            <li class="included">Poster Maker (with watermark)</li>
-            <li class="included">Festival Templates</li>
-            <li class="included">Brand Kit Generator</li>
-            <li class="included">Cloud Save</li>
-            <li class="included">Multi-Language Support</li>
-            <li class="excluded">No Watermark Downloads</li>
-            <li class="excluded">HD Export Quality</li>
-            <li class="excluded">AI Voiceover Generator</li>
-            <li class="excluded">AI Video Ad Creator</li>
-            <li class="excluded">Shopify & Meesho Integration</li>
-            <li class="excluded">WhatsApp Business Integration</li>
+            <li class="included highlight">15 credits (one-time)</li>
+            <li class="included">3 templates only</li>
+            <li class="included">Basic AI generation</li>
+            <li class="included">Watermarked downloads</li>
+            <li class="included">Cloud save</li>
+            <li class="excluded">No watermark downloads</li>
+            <li class="excluded">HD export quality</li>
+            <li class="excluded">AI voiceover</li>
+            <li class="excluded">Video ad creator</li>
+            <li class="excluded">Shopify & Meesho integration</li>
+            <li class="excluded">WhatsApp Business integration</li>
+            <li class="excluded">Priority support</li>
           </ul>
-          <button class="pricing-btn current-plan" disabled>Current Plan</button>
+          <button class="checkout-btn" data-plan="free">Start Free Trial</button>
         </div>
+
+        <!-- Basic Plan -->
+        <div class="pricing-card">
+          <div class="pricing-card-header">
+            <h3>Basic</h3>
+            <div class="pricing-amount">
+              <span class="price-monthly"><span class="currency">₹</span>249<span class="period">/mo</span></span>
+              <span class="price-yearly" style="display:none"><span class="currency">₹</span>1,099<span class="period">/yr</span></span>
+              <span class="save-badge">Save 63%</span>
+            </div>
+          </div>
+          <ul class="pricing-features">
+            <li class="included highlight">50 credits/month</li>
+            <li class="included">All templates</li>
+            <li class="included">Basic AI generation</li>
+            <li class="included">No watermark</li>
+            <li class="included">Cloud save</li>
+            <li class="excluded">HD export quality</li>
+            <li class="excluded">AI voiceover</li>
+            <li class="excluded">Video ad creator</li>
+            <li class="excluded">Shopify & Meesho integration</li>
+            <li class="excluded">WhatsApp Business integration</li>
+            <li class="excluded">Priority support</li>
+          </ul>
+          <button class="checkout-btn" data-plan="basic">Subscribe</button>
+        </div>
+
+        <!-- Pro Plan -->
+        <div class="pricing-card pro">
+          <div class="pricing-badge popular">Popular</div>
+          <div class="pricing-card-header">
+            <h3>Pro</h3>
+            <div class="pricing-amount">
+              <span class="price-monthly"><span class="currency">₹</span>899<span class="period">/mo</span></span>
+              <span class="price-yearly" style="display:none"><span class="currency">₹</span>7,999<span class="period">/yr</span></span>
+              <span class="save-badge">Save 26%</span>
+            </div>
+          </div>
+          <ul class="pricing-features">
+            <li class="included highlight">200 credits/month</li>
+            <li class="included">All templates</li>
+            <li class="included">Basic AI generation</li>
+            <li class="included">No watermark</li>
+            <li class="included">Cloud save</li>
+            <li class="included">HD export quality</li>
+            <li class="included">AI voiceover</li>
+            <li class="excluded">Video ad creator</li>
+            <li class="excluded">Shopify & Meesho integration</li>
+            <li class="excluded">WhatsApp Business integration</li>
+            <li class="excluded">Priority support</li>
+          </ul>
+          <button class="checkout-btn" data-plan="pro">Subscribe</button>
+        </div>
+
         <!-- Premium Plan -->
         <div class="pricing-card premium">
-          <div class="pricing-badge">Most Popular</div>
+          <div class="pricing-badge best-value">Best Value</div>
           <div class="pricing-card-header">
             <h3>Premium</h3>
-            <div class="pricing-amount">$9.99<span>/one-time</span></div>
+            <div class="pricing-amount">
+              <span class="price-monthly"><span class="currency">₹</span>1,499<span class="period">/mo</span></span>
+              <span class="price-yearly" style="display:none"><span class="currency">₹</span>1,299<span class="period">/yr</span></span>
+              <span class="save-badge">Save 93%</span>
+            </div>
           </div>
           <ul class="pricing-features">
-            <li class="included">Everything in Free, plus:</li>
-            <li class="included premium-feature">No Watermark Downloads</li>
-            <li class="included premium-feature">HD Export Quality</li>
-            <li class="included premium-feature">AI Voiceover Generator</li>
-            <li class="included premium-feature">AI Video Ad Creator</li>
-            <li class="included premium-feature">Shopify & Meesho Integration</li>
-            <li class="included premium-feature">WhatsApp Business Integration</li>
-            <li class="included premium-feature">Priority Support</li>
-            <li class="included premium-feature">Early Access to New Features</li>
+            <li class="included highlight">Unlimited credits</li>
+            <li class="included">All templates</li>
+            <li class="included">Basic AI generation</li>
+            <li class="included">No watermark</li>
+            <li class="included">Cloud save</li>
+            <li class="included">HD export quality</li>
+            <li class="included">AI voiceover</li>
+            <li class="included">Video ad creator</li>
+            <li class="included">Shopify & Meesho integration</li>
+            <li class="included">WhatsApp Business integration</li>
+            <li class="included">Priority support</li>
           </ul>
-          <button id="checkoutBtn" class="pricing-btn premium-btn">Upgrade to Premium</button>
+          <button class="checkout-btn" data-plan="premium">Subscribe</button>
         </div>
       </div>
     </div>
@@ -1042,7 +1110,7 @@
       <div class="premium-badge">👑 PREMIUM</div>
       <h2>Unlock the Full Power of ResellFlowAI</h2>
       <p>Get unlimited AI generations, HD exports, watermark-free content, and early access to upcoming features.</p>
-      <button class="btn btn-premium btn-lg" id="premiumUpgradeBtn">Upgrade to Premium</button>
+      <button class="btn btn-premium btn-lg" id="premiumUpgradeBtn" onclick="navigateTo('pricing')">Upgrade to Premium</button>
     </div>
 
     <!-- Premium Features Grid -->

@@ -14,7 +14,12 @@ function defaultState() {
     settings: { lang: 'en', theme: 'dark', selectedTemplate: 'minimalist', selectedPalette: 'neonglow' },
     currentOTP: null,
     session: null,
-    lastSave: Date.now()
+    lastSave: Date.now(),
+    plan: 'free',
+    credits: 15,
+    trialStartDate: null,
+    trialUsed: false,
+    planStartDate: null
   };
 }
 
@@ -93,8 +98,20 @@ window.addEventListener('DOMContentLoaded', function() {
   updateStorageStats();
   applyTheme();
   handlePaymentReturn();
-  var checkoutBtn = document.getElementById('checkoutBtn');
-  if (checkoutBtn) checkoutBtn.addEventListener('click', startCheckout);
+  updatePlanUI();
+  updateCreditDisplay();
+
+  // Billing toggle
+  var monthlyToggle = document.getElementById('monthlyToggle');
+  var yearlyToggle = document.getElementById('yearlyToggle');
+  if (monthlyToggle) monthlyToggle.addEventListener('click', function() { toggleBillingPeriod('monthly'); });
+  if (yearlyToggle) yearlyToggle.addEventListener('click', function() { toggleBillingPeriod('yearly'); });
+
+  // Checkout buttons
+  document.querySelectorAll('.checkout-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { startCheckout(btn.dataset.plan); });
+  });
+
   var premiumUpgradeBtn = document.getElementById('premiumUpgradeBtn');
   if (premiumUpgradeBtn) premiumUpgradeBtn.addEventListener('click', function() { navigateTo('pricing'); });
 });
@@ -168,6 +185,7 @@ function trackGeneration(type, input, output) {
 // Product Description Generator
 function generateProductDescription() {
   if (!isAuthenticated()) { showAuthModal(); return; }
+  if (!useCredit()) return;
   var name = document.getElementById('pd-name').value.trim();
   if (!name) { showToast('Please enter a product name', 'warning'); return; }
   var category = document.getElementById('pd-category').value;
@@ -228,6 +246,7 @@ function saveToCatalog() {
 // Ad Creative Generator
 function generateAdCreative() {
   if (!isAuthenticated()) { showAuthModal(); return; }
+  if (!useCredit()) return;
   var product = document.getElementById('ad-product').value.trim();
   if (!product) { showToast('Please enter a product name', 'warning'); return; }
   var platform = document.getElementById('ad-platform').value;
@@ -285,6 +304,7 @@ function categoryFromProduct(name) {
 // Smart Price Suggestion
 function generatePriceSuggestion() {
   if (!isAuthenticated()) { showAuthModal(); return; }
+  if (!useCredit()) return;
   var product = document.getElementById('sp-product').value.trim();
   if (!product) { showToast('Please enter a product name', 'warning'); return; }
   var category = document.getElementById('sp-category').value;
@@ -323,6 +343,7 @@ function generatePriceSuggestion() {
 // Trending Product Finder
 function findTrendingProducts() {
   if (!isAuthenticated()) { showAuthModal(); return; }
+  if (!useCredit()) return;
   var category = document.getElementById('tp-category').value;
   var sortBy = document.getElementById('tp-sort').value;
 
@@ -395,6 +416,7 @@ function findTrendingProducts() {
 // Short Video Script Generator
 function generateVideoScript() {
   if (!isAuthenticated()) { showAuthModal(); return; }
+  if (!useCredit()) return;
   var product = document.getElementById('vs-product').value.trim();
   if (!product) { showToast('Please enter a product name', 'warning'); return; }
   var videoType = document.getElementById('vs-type').value;
@@ -435,6 +457,7 @@ function generateVideoScript() {
 // Caption and Hashtag Generator
 function generateCaptionHashtag() {
   if (!isAuthenticated()) { showAuthModal(); return; }
+  if (!useCredit()) return;
   var product = document.getElementById('ch-product').value.trim();
   if (!product) { showToast('Please enter a product or niche', 'warning'); return; }
   var style = document.getElementById('ch-style').value;
@@ -593,7 +616,8 @@ function googleSignIn() {
     if (result.user) {
       hideAuthModal();
       updateAuthUI(result.user);
-      updatePremiumUI();
+      updatePlanUI();
+      updateCreditDisplay();
       showToast('Welcome, ' + (result.user.displayName || result.user.email) + '!', 'success');
     }
   }).catch(function(error) {
@@ -698,7 +722,8 @@ function verifyOTP() {
     saveState();
     hideAuthModal();
     updateAuthUIFromSession();
-    updatePremiumUI();
+    updatePlanUI();
+    updateCreditDisplay();
     showToast('Welcome, ' + name + '!', 'success');
   } else {
     showToast('Invalid OTP. Please try again.', 'error');
@@ -802,13 +827,15 @@ function initFirebaseAuth() {
       // User is signed in via Firebase - always hide modal and update UI
       hideAuthModal();
       updateAuthUI(user);
-      updatePremiumUI();
+      updatePlanUI();
+      updateCreditDisplay();
     } else {
       // Check if user has localStorage session (email auth)
       if (state.session && state.session.isAuthenticated) {
         hideAuthModal();
         updateAuthUIFromSession();
-        updatePremiumUI();
+        updatePlanUI();
+        updateCreditDisplay();
       } else {
         // Genuine signed-out state - show auth modal
         updateAuthUI(null);
@@ -1847,6 +1874,15 @@ function drawEventFlyer(canvas, ctx, data) {
 // Main generatePoster - replaced with premium engine
 function generatePoster() {
   if (!isAuthenticated()) { showAuthModal(); return; }
+  if (!useCredit()) return;
+  // Check template limit for free trial users
+  var selectedTemplate = (state.settings && state.settings.selectedTemplate) || 'minimalist';
+  var templateIndex = ['minimalist','boldsale','elegant','festival','productshowcase','socialstory','quotecard','eventflyer'].indexOf(selectedTemplate);
+  if (!isTemplateAllowed(templateIndex)) {
+    showToast('Free trial allows only 3 templates. Upgrade to Basic for all templates!', 'warning');
+    showUpgradePrompt('basic');
+    return;
+  }
   var headline = document.getElementById('ps-headline').value.trim() || 'MEGA SALE';
   var subhead = document.getElementById('ps-subhead').value.trim() || 'Up to 70% Off';
   var body = document.getElementById('ps-body').value.trim();
@@ -1894,14 +1930,16 @@ function generatePoster() {
   var drawFn = templateFns[selectedTemplate] || drawMinimalist;
   drawFn(canvas, ctx, data);
 
-  // Brand watermark
-  ctx.save();
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.font = '400 ' + Math.max(10, Math.min(canvas.width, canvas.height) * 0.025) + 'px Inter, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('ResellFlowAI', canvas.width / 2, canvas.height * 0.95);
-  ctx.restore();
+  // Brand watermark (shown in preview for free/basic users)
+  if (!canRemoveWatermark()) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.font = '400 ' + Math.max(10, Math.min(canvas.width, canvas.height) * 0.025) + 'px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('ResellFlowAI', canvas.width / 2, canvas.height * 0.95);
+    ctx.restore();
+  }
 
   document.getElementById('poster-preview-wrap').style.display = 'block';
   trackGeneration('poster-banner', headline, 'Premium poster: ' + selectedTemplate);
@@ -1921,9 +1959,9 @@ function downloadPoster() {
   var badge = document.getElementById('ps-badge').value.trim();
   var size = document.getElementById('ps-size').value;
 
-  // Premium: 2x HD without watermark; Free: 1x with watermark
-  var scale = isPremiumUser() ? 2 : 1;
-  var showWatermark = !isPremiumUser();
+  // Pro/Premium: 2x HD without watermark; Free/Basic: 1x with watermark
+  var scale = canDownloadHD() ? 2 : 1;
+  var showWatermark = !canRemoveWatermark();
 
   var sizeMap = {
     'instagram-post': [600, 600],
@@ -1962,7 +2000,7 @@ function downloadPoster() {
   var drawFn = templateFns[selectedTemplate] || drawMinimalist;
   drawFn(offCanvas, offCtx, data);
 
-  // Brand watermark (only for free users)
+  // Brand watermark (only for free/basic users)
   if (showWatermark) {
     offCtx.save();
     offCtx.fillStyle = 'rgba(255,255,255,0.4)';
@@ -1974,10 +2012,15 @@ function downloadPoster() {
   }
 
   var link = document.createElement('a');
-  link.download = isPremiumUser() ? 'resellflow-poster-hd.png' : 'resellflow-poster.png';
+  link.download = canDownloadHD() ? 'resellflow-poster-hd.png' : 'resellflow-poster.png';
   link.href = offCanvas.toDataURL('image/png', 1.0);
   link.click();
-  showToast(isPremiumUser() ? 'HD Poster downloaded (no watermark)!' : 'Poster downloaded. Upgrade to Premium for HD without watermark!', isPremiumUser() ? 'success' : 'info');
+
+  if (!canRemoveWatermark()) {
+    showToast('Upgrade to Pro for HD export without watermark!', 'info');
+  } else {
+    showToast('HD Poster downloaded (no watermark)!', 'success');
+  }
 }
 
 // Festival Sale Templates
@@ -2030,6 +2073,7 @@ function loadFestivalTemplate(festival) {
 // Auto Brand Kit Generator
 function generateBrandKit() {
   if (!isAuthenticated()) { showAuthModal(); return; }
+  if (!useCredit()) return;
   var name = document.getElementById('bk-name').value.trim();
   if (!name) { showToast('Please enter a business name', 'warning'); return; }
   var industry = document.getElementById('bk-industry').value;
@@ -2512,50 +2556,167 @@ function deleteProduct(id) {
   showToast('Product deleted', 'info');
 }
 
-// ===== STRIPE PAYMENT INTEGRATION =====
+// ===== 4-TIER CREDIT-BASED PLAN SYSTEM =====
 var STRIPE_PUBLISHABLE_KEY = 'pk_test_51TcRg7P36iZaMPQOh6oApw55QbUxGdJ9e8hvQIrhPi4XGeEHeLIGqJ3d5t5gwwOr4JRWys4JeqkqaCdGzkiC0AMT00aCSsEJQ2';
 
-function isPremiumUser() {
-  var session = state.session || {};
-  return session.isPremium === true;
+// Plan definitions
+var PLANS = {
+  free: { name: 'Free Trial', credits: 15, templates: 3, price_monthly: 0, price_yearly: 0, features: ['basic_ai', 'watermark', 'cloud_save'] },
+  basic: { name: 'Basic', credits: 50, templates: 999, price_monthly: 24900, price_yearly: 109900, features: ['basic_ai', 'no_watermark', 'cloud_save', 'all_templates'] },
+  pro: { name: 'Pro', credits: 200, templates: 999, price_monthly: 89900, price_yearly: 799900, features: ['basic_ai', 'no_watermark', 'cloud_save', 'all_templates', 'hd_export', 'voiceover'] },
+  premium: { name: 'Premium', credits: -1, templates: 999, price_monthly: 149900, price_yearly: 129900, features: ['basic_ai', 'no_watermark', 'cloud_save', 'all_templates', 'hd_export', 'voiceover', 'video_ad', 'shopify', 'whatsapp', 'priority_support'] }
+};
+// Note: Stripe amounts are in paise (INR * 100), so 249 INR = 24900 paise
+
+// Credit system
+function getCredits() {
+  return state.credits || 0;
 }
 
-function setPremiumStatus(isPremium) {
-  if (!state.session) state.session = {};
-  state.session.isPremium = isPremium;
+function useCredit() {
+  var plan = getPlan();
+  if (plan === 'premium') return true; // unlimited
+
+  if (state.credits <= 0) {
+    showToast('No credits remaining! Upgrade your plan for more credits.', 'warning');
+    showUpgradePrompt();
+    return false;
+  }
+  state.credits--;
   saveState();
-  updatePremiumUI();
+  updateCreditDisplay();
+  return true;
 }
 
-function updatePremiumUI() {
-  var badge = document.getElementById('premiumBadge');
-  var checkoutBtn = document.getElementById('checkoutBtn');
+function updateCreditDisplay() {
+  var countEl = document.getElementById('creditCount');
+  var labelEl = document.getElementById('planLabel');
+  var counterEl = document.getElementById('creditCounter');
+  var plan = getPlan();
 
-  if (isPremiumUser()) {
-    if (badge) badge.style.display = 'inline-block';
-    if (checkoutBtn) {
-      checkoutBtn.textContent = 'Premium Active';
-      checkoutBtn.disabled = true;
-      checkoutBtn.classList.add('current-plan');
+  // Show credit counter only when authenticated
+  if (counterEl) {
+    counterEl.style.display = isAuthenticated() ? 'flex' : 'none';
+  }
+
+  if (countEl) {
+    if (PLANS[plan] && PLANS[plan].credits === -1) {
+      countEl.textContent = '\u221E';
+    } else {
+      countEl.textContent = state.credits || 0;
     }
-    // Hide pricing section since user is premium
-    var pricingSection = document.getElementById('pricing-section');
-    if (pricingSection) pricingSection.style.display = 'none';
-  } else {
-    if (badge) badge.style.display = 'none';
-    if (checkoutBtn) {
-      checkoutBtn.textContent = 'Upgrade to Premium';
-      checkoutBtn.disabled = false;
-      checkoutBtn.classList.remove('current-plan');
-    }
-    var pricingSection = document.getElementById('pricing-section');
-    if (pricingSection) pricingSection.style.display = 'block';
+  }
+  if (labelEl) {
+    labelEl.textContent = PLANS[plan] ? PLANS[plan].name : 'Free Trial';
   }
 }
 
-function startCheckout() {
+// Plan getter/setter
+function getPlan() {
+  return state.plan || 'free';
+}
+
+function setPlan(planId) {
+  state.plan = planId;
+  // Set credits based on plan
+  if (planId === 'premium') {
+    state.credits = -1; // unlimited
+  } else if (planId !== 'free') {
+    state.credits = PLANS[planId].credits;
+  }
+  // For free trial, keep existing credits (15)
+  state.planStartDate = Date.now();
+  saveState();
+  updatePlanUI();
+  updateCreditDisplay();
+}
+
+function hasFeature(feature) {
+  var plan = getPlan();
+  return PLANS[plan] && PLANS[plan].features.indexOf(feature) !== -1 || false;
+}
+
+// Free trial system
+function startFreeTrial() {
+  if (state.trialUsed) {
+    showToast('Free trial already used. Please upgrade to a paid plan.', 'warning');
+    return;
+  }
+  state.plan = 'free';
+  state.credits = 15;
+  state.trialStartDate = Date.now();
+  state.trialUsed = true;
+  state.planStartDate = Date.now();
+  saveState();
+  updatePlanUI();
+  updateCreditDisplay();
+  showToast('Free trial started! You have 15 credits and 3 templates for 3 days.', 'success');
+}
+
+function isTrialExpired() {
+  if (getPlan() !== 'free') return false;
+  if (!state.trialStartDate) return true;
+  var threeDays = 3 * 24 * 60 * 60 * 1000;
+  return Date.now() - state.trialStartDate > threeDays;
+}
+
+function getTrialDaysLeft() {
+  if (!state.trialStartDate) return 0;
+  var threeDays = 3 * 24 * 60 * 60 * 1000;
+  var remaining = threeDays - (Date.now() - state.trialStartDate);
+  return Math.max(0, Math.ceil(remaining / (24 * 60 * 60 * 1000)));
+}
+
+// Template limiting
+function getAvailableTemplates() {
+  var plan = getPlan();
+  var maxTemplates = PLANS[plan] ? PLANS[plan].templates : 3;
+  return maxTemplates;
+}
+
+function isTemplateAllowed(templateIndex) {
+  var plan = getPlan();
+  var maxTemplates = PLANS[plan] ? PLANS[plan].templates : 3;
+  return templateIndex < maxTemplates;
+}
+
+// Billing toggle
+var currentBillingPeriod = 'monthly';
+
+function toggleBillingPeriod(period) {
+  currentBillingPeriod = period;
+  // Update all price displays
+  document.querySelectorAll('.price-monthly').forEach(function(el) {
+    el.style.display = period === 'monthly' ? 'inline' : 'none';
+  });
+  document.querySelectorAll('.price-yearly').forEach(function(el) {
+    el.style.display = period === 'yearly' ? 'inline' : 'none';
+  });
+  document.querySelectorAll('.save-badge').forEach(function(el) {
+    el.style.display = period === 'yearly' ? 'inline-block' : 'none';
+  });
+  // Update toggle UI
+  var monthlyBtn = document.getElementById('monthlyToggle');
+  var yearlyBtn = document.getElementById('yearlyToggle');
+  if (monthlyBtn) {
+    if (period === 'monthly') monthlyBtn.classList.add('active');
+    else monthlyBtn.classList.remove('active');
+  }
+  if (yearlyBtn) {
+    if (period === 'yearly') yearlyBtn.classList.add('active');
+    else yearlyBtn.classList.remove('active');
+  }
+}
+
+// Checkout flow
+function startCheckout(planId) {
   if (!isAuthenticated()) {
     showAuthModal();
+    return;
+  }
+
+  if (planId === 'free') {
+    startFreeTrial();
     return;
   }
 
@@ -2566,49 +2727,88 @@ function startCheckout() {
     email = state.session.email;
   }
 
-  // Show loading state
-  var btn = document.getElementById('checkoutBtn');
+  var btn = document.querySelector('[data-plan="' + planId + '"]');
   if (btn) {
     btn.textContent = 'Processing...';
     btn.disabled = true;
   }
 
-  // Call Node Function to create checkout session
   fetch('/stripe/create-checkout', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: email })
+    body: JSON.stringify({
+      email: email,
+      planId: planId,
+      period: currentBillingPeriod
+    })
   })
   .then(function(response) { return response.json(); })
   .then(function(data) {
     if (data.url) {
-      // Redirect to Stripe Checkout
       window.location.href = data.url;
     } else {
       showToast('Failed to start checkout: ' + (data.error || 'Unknown error'), 'error');
-      if (btn) {
-        btn.textContent = 'Upgrade to Premium';
-        btn.disabled = false;
-      }
+      resetCheckoutButtons();
     }
   })
   .catch(function(error) {
-    showToast('Checkout unavailable. Please try again later.', 'warning');
-    if (btn) {
-      btn.textContent = 'Upgrade to Premium';
-      btn.disabled = false;
-    }
+    showToast('Checkout error: ' + error.message, 'error');
+    resetCheckoutButtons();
   });
 }
 
+function resetCheckoutButtons() {
+  document.querySelectorAll('.checkout-btn').forEach(function(btn) {
+    var plan = btn.dataset.plan;
+    if (plan === 'free') {
+      btn.textContent = state.trialUsed ? 'Trial Used' : 'Start Free Trial';
+    } else {
+      btn.textContent = 'Subscribe';
+    }
+    btn.disabled = false;
+  });
+}
+
+// Update feature gating
+function canDownloadHD() {
+  return hasFeature('hd_export');
+}
+
+function canRemoveWatermark() {
+  return hasFeature('no_watermark');
+}
+
+function canUseVoiceover() {
+  return hasFeature('voiceover');
+}
+
+function canUseVideoAd() {
+  return hasFeature('video_ad');
+}
+
+function canUseShopify() {
+  return hasFeature('shopify');
+}
+
+function canUseWhatsApp() {
+  return hasFeature('whatsapp');
+}
+
+// Legacy compatibility
+function isPremiumUser() {
+  var plan = getPlan();
+  return plan === 'pro' || plan === 'premium';
+}
+
+// Update handlePaymentReturn for 4-tier plans
 function handlePaymentReturn() {
   var urlParams = new URLSearchParams(window.location.search);
   var paymentStatus = urlParams.get('payment');
+  var planId = urlParams.get('plan') || 'basic';
 
   if (paymentStatus === 'success') {
-    setPremiumStatus(true);
-    showPaymentNotification('success', 'Payment successful! You now have Premium access.');
-    // Clean URL
+    setPlan(planId);
+    showPaymentNotification('success', 'Payment successful! Your ' + (PLANS[planId] ? PLANS[planId].name : planId) + ' plan is now active.');
     window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
   } else if (paymentStatus === 'cancel') {
     showPaymentNotification('cancel', 'Payment was cancelled. You can try again anytime.');
@@ -2626,17 +2826,64 @@ function showPaymentNotification(type, message) {
   }
 }
 
-function showUpgradePrompt() {
-  showToast('This feature requires Premium. Upgrade now to unlock it!', 'warning');
-  // Navigate to pricing section
-  var pricingLink = document.querySelector('[data-section="pricing"]');
-  if (pricingLink) pricingLink.click();
+// Update Plan UI
+function updatePlanUI() {
+  var plan = getPlan();
+  var badge = document.getElementById('premiumBadge');
+
+  if (badge) {
+    if (plan === 'premium') {
+      badge.textContent = 'PREMIUM';
+      badge.style.display = 'inline-block';
+    } else if (plan === 'pro') {
+      badge.textContent = 'PRO';
+      badge.style.display = 'inline-block';
+    } else if (plan === 'basic') {
+      badge.textContent = 'BASIC';
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  // Update pricing card buttons
+  document.querySelectorAll('.checkout-btn').forEach(function(btn) {
+    var btnPlan = btn.dataset.plan;
+    if (btnPlan === plan) {
+      btn.textContent = 'Current Plan';
+      btn.disabled = true;
+      btn.classList.add('current-plan');
+    } else if (btnPlan === 'free' && state.trialUsed) {
+      btn.textContent = 'Trial Used';
+      btn.disabled = true;
+      btn.classList.add('current-plan');
+    } else {
+      btn.textContent = btnPlan === 'free' ? 'Start Free Trial' : 'Subscribe';
+      btn.disabled = false;
+      btn.classList.remove('current-plan');
+    }
+  });
+
+  // Show/hide pricing section based on plan
+  var pricingSection = document.getElementById('pricing-section');
+  if (pricingSection) {
+    pricingSection.style.display = 'block';
+  }
+
+  updateCreditDisplay();
 }
 
-// ===== PREMIUM DEMO FEATURES =====
+// Show upgrade prompt with specific plan suggestion
+function showUpgradePrompt(suggestedPlan) {
+  var planName = suggestedPlan ? PLANS[suggestedPlan].name : 'a paid plan';
+  showToast('This feature requires ' + planName + '. Upgrade now!', 'warning');
+  navigateTo('pricing');
+}
+
+// ===== PREMIUM FEATURE DEMOS (Plan-gated) =====
 function tryVoiceover() {
   if (!isAuthenticated()) { showAuthModal(); return; }
-  if (!isPremiumUser()) { showUpgradePrompt(); return; }
+  if (!canUseVoiceover()) { showUpgradePrompt('pro'); return; }
   var output = document.getElementById('vo-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>Voiceover Demo</h3>' +
@@ -2649,12 +2896,12 @@ function tryVoiceover() {
     'Voice: Professional Female | Speed: 1.0x | Duration: ~15 sec\n' +
     'Tone: Confident, Warm, Persuasive' +
     '</p>';
-  showToast('Voiceover demo generated! (Premium feature)', 'info');
+  showToast('Voiceover demo generated! (Pro feature)', 'info');
 }
 
 function tryVideoAd() {
   if (!isAuthenticated()) { showAuthModal(); return; }
-  if (!isPremiumUser()) { showUpgradePrompt(); return; }
+  if (!canUseVideoAd()) { showUpgradePrompt('premium'); return; }
   var output = document.getElementById('vac-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>Video Ad Demo</h3>' +
@@ -2673,7 +2920,7 @@ function tryVideoAd() {
 
 function tryShopifyIntegration() {
   if (!isAuthenticated()) { showAuthModal(); return; }
-  if (!isPremiumUser()) { showUpgradePrompt(); return; }
+  if (!canUseShopify()) { showUpgradePrompt('premium'); return; }
   var output = document.getElementById('si-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>Shopify &amp; Meesho Integration Demo</h3>' +
@@ -2697,7 +2944,7 @@ function tryShopifyIntegration() {
 
 function tryWhatsAppIntegration() {
   if (!isAuthenticated()) { showAuthModal(); return; }
-  if (!isPremiumUser()) { showUpgradePrompt(); return; }
+  if (!canUseWhatsApp()) { showUpgradePrompt('premium'); return; }
   var output = document.getElementById('wa-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>WhatsApp Integration Demo</h3>' +

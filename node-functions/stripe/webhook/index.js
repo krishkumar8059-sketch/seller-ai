@@ -1,20 +1,9 @@
 // Stripe Webhook Handler
-// Processes Stripe webhook events to confirm payment success.
-// The secret key is read from environment variables.
+// Processes Stripe webhook events for subscription lifecycle management.
 
 export async function onRequestPost(context) {
   try {
-    const STRIPE_SECRET_KEY = context.env.STRIPE_SECRET_KEY;
     const body = await context.request.text();
-
-    if (!STRIPE_SECRET_KEY) {
-      return new Response(JSON.stringify({ error: 'Stripe configuration missing' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Parse the event
     let event;
     try {
       event = JSON.parse(body);
@@ -25,14 +14,28 @@ export async function onRequestPost(context) {
       });
     }
 
-    // Handle checkout.session.completed event
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
-      const customerEmail = session.customer_email;
-
-      // In a production app, you would store this in a database/KV
-      // For now, we return success - the frontend handles premium status via URL params
-      console.log('Payment completed for:', customerEmail);
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        const planId = session.metadata?.planId || 'basic';
+        console.log('Subscription started:', planId, 'for', session.customer_email);
+        break;
+      }
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object;
+        console.log('Payment succeeded for:', invoice.customer_email);
+        break;
+      }
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object;
+        console.log('Subscription cancelled:', subscription.id);
+        break;
+      }
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object;
+        console.log('Subscription updated:', subscription.id);
+        break;
+      }
     }
 
     return new Response(JSON.stringify({ received: true }), {
