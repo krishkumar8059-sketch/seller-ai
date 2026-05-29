@@ -36,10 +36,18 @@ function saveState() {
 var VALID_SECTIONS = ['home', 'core', 'marketing', 'design', 'platform', 'business', 'premium'];
 
 function navigateTo(section) {
+  if (!firebase.auth().currentUser) {
+    showAuthModal();
+    return;
+  }
   window.location.hash = '#' + section;
 }
 
 function handleRoute() {
+  if (!firebase.auth().currentUser) {
+    showAuthModal();
+    return;
+  }
   var hash = window.location.hash.replace('#', '') || 'home';
   if (VALID_SECTIONS.indexOf(hash) === -1) hash = 'home';
 
@@ -61,7 +69,20 @@ function handleRoute() {
 }
 
 window.addEventListener('hashchange', handleRoute);
+
+// Block Escape key from closing the auth modal
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    var modal = document.getElementById('authModal');
+    if (modal && (modal.classList.contains('active') || modal.style.display === 'flex')) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }
+});
+
 window.addEventListener('DOMContentLoaded', function() {
+  checkAuth();
   handleRoute();
   initAuth();
   renderReminders();
@@ -140,6 +161,7 @@ function trackGeneration(type, input, output) {
 
 // Product Description Generator
 function generateProductDescription() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var name = document.getElementById('pd-name').value.trim();
   if (!name) { showToast('Please enter a product name', 'warning'); return; }
   var category = document.getElementById('pd-category').value;
@@ -178,6 +200,7 @@ function generateProductDescription() {
 
 // Save to catalog from product description
 function saveToCatalog() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var name = document.getElementById('pd-name').value.trim();
   if (!name) return;
   var category = document.getElementById('pd-category').value;
@@ -198,6 +221,7 @@ function saveToCatalog() {
 
 // Ad Creative Generator
 function generateAdCreative() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var product = document.getElementById('ad-product').value.trim();
   if (!product) { showToast('Please enter a product name', 'warning'); return; }
   var platform = document.getElementById('ad-platform').value;
@@ -254,6 +278,7 @@ function categoryFromProduct(name) {
 
 // Smart Price Suggestion
 function generatePriceSuggestion() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var product = document.getElementById('sp-product').value.trim();
   if (!product) { showToast('Please enter a product name', 'warning'); return; }
   var category = document.getElementById('sp-category').value;
@@ -291,6 +316,7 @@ function generatePriceSuggestion() {
 
 // Trending Product Finder
 function findTrendingProducts() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var category = document.getElementById('tp-category').value;
   var sortBy = document.getElementById('tp-sort').value;
 
@@ -362,6 +388,7 @@ function findTrendingProducts() {
 
 // Short Video Script Generator
 function generateVideoScript() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var product = document.getElementById('vs-product').value.trim();
   if (!product) { showToast('Please enter a product name', 'warning'); return; }
   var videoType = document.getElementById('vs-type').value;
@@ -401,6 +428,7 @@ function generateVideoScript() {
 
 // Caption and Hashtag Generator
 function generateCaptionHashtag() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var product = document.getElementById('ch-product').value.trim();
   if (!product) { showToast('Please enter a product or niche', 'warning'); return; }
   var style = document.getElementById('ch-style').value;
@@ -450,6 +478,7 @@ function generateCaptionHashtag() {
 
 // Marketing Reminder System
 function addReminder() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var title = document.getElementById('mr-title').value.trim();
   if (!title) { showToast('Please enter a reminder title', 'warning'); return; }
   var datetime = document.getElementById('mr-datetime').value;
@@ -520,11 +549,20 @@ function initAuth() {
 
 function showAuthModal() {
   var modal = document.getElementById('authModal');
-  modal.classList.add('active');
+  if (modal) {
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+  }
 }
 
 function hideAuthModal() {
-  document.getElementById('authModal').classList.remove('active');
+  var user = firebase.auth().currentUser;
+  if (!user) return; // Block dismissal without auth
+  var modal = document.getElementById('authModal');
+  if (modal) {
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+  }
 }
 
 // Google Sign-In using redirect (more reliable for cross-domain)
@@ -1596,6 +1634,7 @@ function drawEventFlyer(canvas, ctx, data) {
 
 // Main generatePoster - replaced with premium engine
 function generatePoster() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var headline = document.getElementById('ps-headline').value.trim() || 'MEGA SALE';
   var subhead = document.getElementById('ps-subhead').value.trim() || 'Up to 70% Off';
   var body = document.getElementById('ps-body').value.trim();
@@ -1658,6 +1697,7 @@ function generatePoster() {
 }
 
 function downloadPoster() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var canvas = document.getElementById('posterCanvas');
   var selectedTemplate = (state.settings && state.settings.selectedTemplate) || 'minimalist';
   var selectedPalette = (state.settings && state.settings.selectedPalette) || 'neonglow';
@@ -1725,6 +1765,7 @@ function downloadPoster() {
 
 // Festival Sale Templates
 function loadFestivalTemplate(festival) {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var templates = {
     diwali: {
       headline: 'DIWALI MEGA SALE',
@@ -1771,6 +1812,7 @@ function loadFestivalTemplate(festival) {
 
 // Auto Brand Kit Generator
 function generateBrandKit() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var name = document.getElementById('bk-name').value.trim();
   if (!name) { showToast('Please enter a business name', 'warning'); return; }
   var industry = document.getElementById('bk-industry').value;
@@ -1843,6 +1885,7 @@ function updateMobileDashboard() {
 
 // ===== CLOUD SAVE =====
 function exportData() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var data = JSON.stringify(state, null, 2);
   var blob = new Blob([data], { type: 'application/json' });
   var url = URL.createObjectURL(blob);
@@ -1855,6 +1898,7 @@ function exportData() {
 }
 
 function importData(event) {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var file = event.target.files[0];
   if (!file) return;
   var reader = new FileReader();
@@ -1877,6 +1921,7 @@ function importData(event) {
 }
 
 function clearAllData() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   if (!confirm('Are you sure you want to delete all data? This cannot be undone.')) return;
   state = defaultState();
   saveState();
@@ -1949,6 +1994,7 @@ var translations = {
 };
 
 function switchLanguage(lang) {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   state.settings.lang = lang;
   saveState();
   var t = translations[lang] || translations.en;
@@ -1986,6 +2032,7 @@ var notificationPool = [
 ];
 
 function refreshNotifications() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var feed = document.getElementById('notification-feed');
   feed.innerHTML = '';
   for (var i = 0; i < notificationPool.length; i++) {
@@ -2082,6 +2129,7 @@ function updateAnalytics() {
 
 // ===== CUSTOMER LEAD MANAGEMENT =====
 function addLead() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var name = document.getElementById('cl-name').value.trim();
   if (!name) { showToast('Please enter a customer name', 'warning'); return; }
   var contact = document.getElementById('cl-contact').value.trim();
@@ -2153,10 +2201,12 @@ function deleteLead(id) {
 
 // ===== PRODUCT CATALOG =====
 function openAddProductModal() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   openModal('addProductModal');
 }
 
 function addProduct() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var name = document.getElementById('ap-name').value.trim();
   if (!name) { showToast('Please enter a product name', 'warning'); return; }
   var category = document.getElementById('ap-category').value;
@@ -2247,6 +2297,7 @@ function deleteProduct(id) {
 
 // ===== PREMIUM DEMO FEATURES =====
 function tryVoiceover() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var output = document.getElementById('vo-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>Voiceover Demo</h3>' +
@@ -2263,6 +2314,7 @@ function tryVoiceover() {
 }
 
 function tryVideoAd() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var output = document.getElementById('vac-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>Video Ad Demo</h3>' +
@@ -2280,6 +2332,7 @@ function tryVideoAd() {
 }
 
 function tryShopifyIntegration() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var output = document.getElementById('si-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>Shopify &amp; Meesho Integration Demo</h3>' +
@@ -2302,6 +2355,7 @@ function tryShopifyIntegration() {
 }
 
 function tryWhatsAppIntegration() {
+  if (!firebase.auth().currentUser) { showAuthModal(); return; }
   var output = document.getElementById('wa-output');
   output.style.display = 'block';
   output.innerHTML = '<h3>WhatsApp Integration Demo</h3>' +
