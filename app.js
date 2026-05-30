@@ -48,6 +48,11 @@ function navigateTo(section) {
     return;
   }
   window.location.hash = '#' + section;
+  closeMobileDrawer();
+  // Adjust scroll for mobile header
+  setTimeout(function() {
+    window.scrollTo(0, 0);
+  }, 50);
 }
 
 function handleRoute() {
@@ -65,7 +70,7 @@ function handleRoute() {
   document.querySelectorAll('.nav-item').forEach(function(n) {
     n.classList.toggle('active', n.dataset.section === hash);
   });
-  document.querySelectorAll('.bottom-nav-item').forEach(function(n) {
+  document.querySelectorAll('.bn-item').forEach(function(n) {
     n.classList.toggle('active', n.dataset.section === hash);
   });
 
@@ -100,6 +105,7 @@ window.addEventListener('DOMContentLoaded', function() {
   handlePaymentReturn();
   updatePlanUI();
   updateCreditDisplay();
+  updateMobileHeader();
 
   // Billing toggle
   var monthlyToggle = document.getElementById('monthlyToggle');
@@ -114,22 +120,87 @@ window.addEventListener('DOMContentLoaded', function() {
 
   var premiumUpgradeBtn = document.getElementById('premiumUpgradeBtn');
   if (premiumUpgradeBtn) premiumUpgradeBtn.addEventListener('click', function() { navigateTo('pricing'); });
+
+  // Hamburger button
+  var hamburgerBtn = document.getElementById('hamburgerBtn');
+  if (hamburgerBtn) hamburgerBtn.addEventListener('click', toggleMobileDrawer);
+
+  // Bottom nav Menu button
+  var bnMenuBtn = document.getElementById('bnMenuBtn');
+  if (bnMenuBtn) bnMenuBtn.addEventListener('click', function(e) { e.preventDefault(); toggleMobileDrawer(); });
+
+  // Drawer close button
+  var drawerCloseBtn = document.getElementById('drawerCloseBtn');
+  if (drawerCloseBtn) drawerCloseBtn.addEventListener('click', closeMobileDrawer);
+
+  // Drawer overlay click to close
+  var drawerOverlay = document.getElementById('mobileDrawer');
+  if (drawerOverlay) drawerOverlay.addEventListener('click', function(e) { if (e.target === drawerOverlay) closeMobileDrawer(); });
+
+  // Drawer navigation items
+  document.querySelectorAll('.drawer-item').forEach(function(item) {
+    item.addEventListener('click', function(e) {
+      e.preventDefault();
+      var section = item.dataset.section;
+      if (section) navigateTo(section);
+      closeMobileDrawer();
+    });
+  });
+
+  // Drawer theme toggle
+  var drawerThemeToggle = document.getElementById('drawerThemeToggle');
+  if (drawerThemeToggle) drawerThemeToggle.addEventListener('click', function() {
+    toggleTheme();
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    drawerThemeToggle.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+  });
+
+  // Drawer sign out
+  var drawerSignOut = document.getElementById('drawerSignOut');
+  if (drawerSignOut) drawerSignOut.addEventListener('click', function() {
+    closeMobileDrawer();
+    googleSignOut();
+  });
+
+  // Edit product save button
+  var editProductSaveBtn = document.getElementById('editProductSaveBtn');
+  if (editProductSaveBtn) editProductSaveBtn.addEventListener('click', saveEditedProduct);
+
+  // Custom confirm buttons
+  var confirmOkBtn = document.getElementById('confirmOk');
+  var confirmCancelBtn = document.getElementById('confirmCancel');
+  if (confirmOkBtn) confirmOkBtn.addEventListener('click', function() {
+    document.getElementById('customConfirmModal').style.display = 'none';
+    if (confirmCallback) { confirmCallback(); confirmCallback = null; }
+  });
+  if (confirmCancelBtn) confirmCancelBtn.addEventListener('click', function() {
+    document.getElementById('customConfirmModal').style.display = 'none';
+    confirmCallback = null;
+  });
 });
 
 // ===== THEME =====
-document.getElementById('themeToggle').addEventListener('click', function() {
+function toggleTheme() {
   state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
   saveState();
   applyTheme();
+}
+
+document.getElementById('themeToggle').addEventListener('click', function() {
+  toggleTheme();
 });
 
 function applyTheme() {
   if (state.settings.theme === 'light') {
     document.body.classList.add('light');
-    document.getElementById('themeIcon').className = 'fa-solid fa-sun';
+    document.documentElement.setAttribute('data-theme', 'light');
+    var themeIcon = document.getElementById('themeIcon');
+    if (themeIcon) themeIcon.className = 'fa-solid fa-sun';
   } else {
     document.body.classList.remove('light');
-    document.getElementById('themeIcon').className = 'fa-solid fa-moon';
+    document.documentElement.setAttribute('data-theme', 'dark');
+    var themeIcon2 = document.getElementById('themeIcon');
+    if (themeIcon2) themeIcon2.className = 'fa-solid fa-moon';
   }
 }
 
@@ -618,14 +689,18 @@ function googleSignIn() {
       updateAuthUI(result.user);
       updatePlanUI();
       updateCreditDisplay();
+      updateMobileHeader();
       showToast('Welcome, ' + (result.user.displayName || result.user.email) + '!', 'success');
     }
   }).catch(function(error) {
     if (error.code === 'auth/unauthorized-domain') {
       showToast('Google Sign-In not available on this domain. Please use Email sign-in instead.', 6000, 'warning');
       showEmailAuthForm();
-    } else if (error.code === 'auth/popup-closed-by-user') {
-      // User closed popup, do nothing
+    } else if (error.code === 'auth/popup-blocked-by-browser' || error.code === 'auth/popup-closed-by-user') {
+      showToast('Popup blocked. Trying redirect...', 'info');
+      var provider = new firebase.auth.GoogleAuthProvider();
+      provider.addScope('email');
+      firebase.auth().signInWithRedirect(provider);
     } else {
       showToast('Sign-in error: ' + error.message, 5000, 'error');
     }
@@ -724,6 +799,7 @@ function verifyOTP() {
     updateAuthUIFromSession();
     updatePlanUI();
     updateCreditDisplay();
+    updateMobileHeader();
     showToast('Welcome, ' + name + '!', 'success');
   } else {
     showToast('Invalid OTP. Please try again.', 'error');
@@ -2183,14 +2259,15 @@ function importData(event) {
 
 function clearAllData() {
   if (!isAuthenticated()) { showAuthModal(); return; }
-  if (!confirm('Are you sure you want to delete all data? This cannot be undone.')) return;
-  state = defaultState();
-  saveState();
-  renderReminders();
-  renderLeads();
-  renderCatalog();
-  updateMobileDashboard();
-  showToast('All data cleared', 'info');
+  showCustomConfirm('Clear All Data', 'This will permanently delete all your data. Are you sure?', function() {
+    state = defaultState();
+    saveState();
+    renderReminders();
+    renderLeads();
+    renderCatalog();
+    updateMobileDashboard();
+    showToast('All data cleared', 'info');
+  });
 }
 
 function updateStorageStats() {
@@ -2533,27 +2610,15 @@ function filterCatalog() {
   renderCatalog();
 }
 
-function editProduct(id) {
-  var product = state.products.find(function(p) { return p.id === id; });
-  if (!product) return;
-  var newName = prompt('Edit product name:', product.name);
-  if (newName === null) return;
-  if (newName.trim()) product.name = newName.trim();
-  var newPrice = prompt('Edit price (\u20B9):', product.price);
-  if (newPrice !== null) product.price = parseFloat(newPrice) || 0;
-  var newStock = prompt('Edit stock:', product.stock);
-  if (newStock !== null) product.stock = parseInt(newStock) || 0;
-  saveState();
-  renderCatalog();
-  showToast('Product updated!', 'success');
-}
+/* editProduct is now handled by custom modal - see MOBILE DRAWER & HEADER section */
 
 function deleteProduct(id) {
-  if (!confirm('Delete this product?')) return;
-  state.products = state.products.filter(function(p) { return p.id !== id; });
-  saveState();
-  renderCatalog();
-  showToast('Product deleted', 'info');
+  showCustomConfirm('Delete Product', 'Are you sure you want to delete this product?', function() {
+    state.products = state.products.filter(function(p) { return p.id !== id; });
+    saveState();
+    renderCatalog();
+    showToast('Product deleted', 'info');
+  });
 }
 
 // ===== 4-TIER CREDIT-BASED PLAN SYSTEM =====
@@ -2609,6 +2674,7 @@ function updateCreditDisplay() {
   if (labelEl) {
     labelEl.textContent = PLANS[plan] ? PLANS[plan].name : 'Free Trial';
   }
+  updateMobileHeader();
 }
 
 // Plan getter/setter
@@ -2871,9 +2937,8 @@ function updatePlanUI() {
   }
 
   updateCreditDisplay();
+  updateMobileHeader();
 }
-
-// Show upgrade prompt with specific plan suggestion
 function showUpgradePrompt(suggestedPlan) {
   var planName = suggestedPlan ? PLANS[suggestedPlan].name : 'a paid plan';
   showToast('This feature requires ' + planName + '. Upgrade now!', 'warning');
@@ -2964,6 +3029,144 @@ function tryWhatsAppIntegration() {
     '  \u2022 Share payment links' +
     '</p>';
   showToast('WhatsApp integration demo! (Premium feature)', 'info');
+}
+
+// ===== MOBILE DRAWER & HEADER =====
+function toggleMobileDrawer() {
+  var overlay = document.getElementById('mobileDrawer');
+  if (!overlay) return;
+  var isOpen = overlay.style.display === 'flex';
+  if (isOpen) {
+    overlay.style.display = 'none';
+    document.body.style.overflow = '';
+  } else {
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    updateDrawerUserInfo();
+  }
+}
+
+function closeMobileDrawer() {
+  var overlay = document.getElementById('mobileDrawer');
+  if (overlay) {
+    overlay.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+}
+
+function updateDrawerUserInfo() {
+  var user = firebase.auth() ? firebase.auth().currentUser : null;
+  var session = state.session || {};
+  var name = (user && user.displayName) || session.name || 'Guest';
+  var email = (user && user.email) || session.email || '';
+
+  var nameEl = document.getElementById('drawerUserName');
+  var emailEl = document.getElementById('drawerUserEmail');
+  var avatarEl = document.getElementById('drawerAvatar');
+  var signOutBtn = document.getElementById('drawerSignOut');
+
+  if (nameEl) nameEl.textContent = name;
+  if (emailEl) emailEl.textContent = email;
+  if (avatarEl) {
+    if (user && user.photoURL) {
+      avatarEl.innerHTML = '<img src="' + user.photoURL + '" alt="avatar">';
+    } else {
+      avatarEl.textContent = name.charAt(0).toUpperCase();
+    }
+  }
+  if (signOutBtn) signOutBtn.style.display = (user || session.isAuthenticated) ? 'block' : 'none';
+
+  // Update theme toggle text
+  var themeBtn = document.getElementById('drawerThemeToggle');
+  if (themeBtn) {
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    themeBtn.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+  }
+}
+
+function updateMobileHeader() {
+  var countEl = document.getElementById('mobileCreditCount');
+  var labelEl = document.getElementById('mobilePlanLabel');
+  var avatarEl = document.getElementById('mobileAvatar');
+
+  if (countEl) {
+    var plan = getPlan();
+    if (PLANS[plan] && PLANS[plan].credits === -1) {
+      countEl.textContent = '∞';
+    } else {
+      countEl.textContent = state.credits || 0;
+    }
+  }
+  if (labelEl) {
+    labelEl.textContent = PLANS[getPlan()] ? PLANS[getPlan()].name : 'Free';
+  }
+  if (avatarEl) {
+    var user = firebase.auth() ? firebase.auth().currentUser : null;
+    var session = state.session || {};
+    if (user || session.isAuthenticated) {
+      avatarEl.style.display = 'flex';
+      if (user && user.photoURL) {
+        avatarEl.innerHTML = '<img src="' + user.photoURL + '" alt="avatar">';
+      } else {
+        var mName = (user && user.displayName) || session.name || 'U';
+        avatarEl.textContent = mName.charAt(0).toUpperCase();
+      }
+    } else {
+      avatarEl.style.display = 'none';
+    }
+  }
+}
+
+// ===== CUSTOM CONFIRM MODAL =====
+var confirmCallback = null;
+
+function showCustomConfirm(title, message, callback) {
+  var titleEl = document.getElementById('confirmTitle');
+  var msgEl = document.getElementById('confirmMessage');
+  var modal = document.getElementById('customConfirmModal');
+  if (titleEl) titleEl.textContent = title;
+  if (msgEl) msgEl.textContent = message;
+  if (modal) modal.style.display = 'flex';
+  confirmCallback = callback;
+}
+
+// ===== EDIT PRODUCT MODAL =====
+var editingProductId = null;
+
+function editProduct(id) {
+  var product = state.products.find(function(p) { return p.id === id; });
+  if (!product) return;
+
+  editingProductId = id;
+  document.getElementById('editProductName').value = product.name || '';
+  document.getElementById('editProductCategory').value = product.category || '';
+  document.getElementById('editProductPrice').value = product.price || '';
+  document.getElementById('editProductDesc').value = product.description || '';
+
+  var modal = document.getElementById('editProductModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeEditProductModal() {
+  var modal = document.getElementById('editProductModal');
+  if (modal) modal.style.display = 'none';
+  editingProductId = null;
+}
+
+function saveEditedProduct() {
+  if (!editingProductId) return;
+  var idx = state.products.findIndex(function(p) { return p.id === editingProductId; });
+  if (idx === -1) return;
+
+  state.products[idx].name = document.getElementById('editProductName').value;
+  state.products[idx].category = document.getElementById('editProductCategory').value;
+  state.products[idx].price = document.getElementById('editProductPrice').value;
+  state.products[idx].description = document.getElementById('editProductDesc').value;
+
+  saveState();
+  closeEditProductModal();
+  renderCatalog();
+  showToast('Product updated!');
 }
 
 // ===== UTILITY =====

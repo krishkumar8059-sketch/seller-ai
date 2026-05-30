@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#6C5CE7">
 <title>ResellFlowAI — Resell Smarter with AI</title>
 <meta name="description" content="AI-powered platform for sellers and resellers. Generate product descriptions, ad creatives, marketing content, and manage your business with AI.">
 <meta name="keywords" content="resell, AI, ecommerce, product description, ad generator, marketing, seller tools">
@@ -79,31 +80,77 @@
   </div>
 </aside>
 
+<!-- Mobile Header -->
+<div class="mobile-header">
+  <div class="mh-left">
+    <span class="mh-logo">ResellFlow<span class="logo-dot">AI</span></span>
+  </div>
+  <div class="mh-center">
+    <div class="mh-credits">
+      <span class="credit-icon">⚡</span>
+      <span id="mobileCreditCount">15</span>
+      <span class="mh-plan-label" id="mobilePlanLabel">Free</span>
+    </div>
+  </div>
+  <div class="mh-right">
+    <div id="mobileAvatar" class="mh-avatar" style="display:none;"></div>
+    <button id="hamburgerBtn" class="hamburger-btn" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</div>
+
+<!-- Mobile Drawer -->
+<div id="mobileDrawer" class="mobile-drawer-overlay" style="display:none;">
+  <div class="mobile-drawer">
+    <div class="drawer-header">
+      <div class="drawer-user">
+        <div id="drawerAvatar" class="drawer-avatar"></div>
+        <div class="drawer-user-info">
+          <span id="drawerUserName" class="drawer-user-name">Guest</span>
+          <span id="drawerUserEmail" class="drawer-user-email"></span>
+        </div>
+      </div>
+      <button id="drawerCloseBtn" class="drawer-close-btn">&times;</button>
+    </div>
+    <div class="drawer-menu">
+      <a href="#" class="drawer-item" data-section="home"><span class="di-icon">🏠</span> Home</a>
+      <a href="#" class="drawer-item" data-section="core"><span class="di-icon">🛒</span> Core AI Tools</a>
+      <a href="#" class="drawer-item" data-section="marketing"><span class="di-icon">📢</span> Marketing</a>
+      <a href="#" class="drawer-item" data-section="design"><span class="di-icon">🎨</span> Design</a>
+      <a href="#" class="drawer-item" data-section="platform"><span class="di-icon">📱</span> Platform</a>
+      <a href="#" class="drawer-item" data-section="business"><span class="di-icon">📊</span> Business</a>
+      <a href="#" class="drawer-item" data-section="premium"><span class="di-icon">💎</span> Premium</a>
+      <a href="#" class="drawer-item" data-section="pricing"><span class="di-icon">💰</span> Pricing</a>
+    </div>
+    <div class="drawer-footer">
+      <button id="drawerThemeToggle" class="drawer-action-btn">🌙 Dark Mode</button>
+      <button id="drawerSignOut" class="drawer-action-btn drawer-signout-btn" style="display:none;">Sign Out</button>
+    </div>
+  </div>
+</div>
+
 <!-- Mobile Bottom Navigation -->
 <nav class="bottom-nav" id="bottomNav">
-  <a href="#home" class="bottom-nav-item active" data-section="home">
-    <i class="fa-solid fa-house"></i><span>Home</span>
+  <a href="#home" class="bn-item active" data-section="home">
+    <span class="bn-icon">🏠</span>
+    <span class="bn-label">Home</span>
   </a>
-  <a href="#core" class="bottom-nav-item" data-section="core">
-    <i class="fa-solid fa-wand-magic-sparkles"></i><span>Core</span>
+  <a href="#core" class="bn-item" data-section="core">
+    <span class="bn-icon">🛒</span>
+    <span class="bn-label">Tools</span>
   </a>
-  <a href="#marketing" class="bottom-nav-item" data-section="marketing">
-    <i class="fa-solid fa-bullhorn"></i><span>Market</span>
+  <a href="#design" class="bn-item" data-section="design">
+    <span class="bn-icon">🎨</span>
+    <span class="bn-label">Create</span>
   </a>
-  <a href="#design" class="bottom-nav-item" data-section="design">
-    <i class="fa-solid fa-palette"></i><span>Design</span>
+  <a href="#pricing" class="bn-item" data-section="pricing">
+    <span class="bn-icon">💰</span>
+    <span class="bn-label">Plans</span>
   </a>
-  <a href="#platform" class="bottom-nav-item" data-section="platform">
-    <i class="fa-solid fa-mobile-screen"></i><span>Platform</span>
-  </a>
-  <a href="#business" class="bottom-nav-item" data-section="business">
-    <i class="fa-solid fa-chart-line"></i><span>Business</span>
-  </a>
-  <a href="#premium" class="bottom-nav-item" data-section="premium">
-    <i class="fa-solid fa-crown"></i><span>Premium</span>
-  </a>
-  <a href="#pricing" class="bottom-nav-item" data-section="pricing">
-    <i class="fa-solid fa-tag"></i><span>Pricing</span>
+  <a href="#" class="bn-item" id="bnMenuBtn">
+    <span class="bn-icon">☰</span>
+    <span class="bn-label">Menu</span>
   </a>
 </nav>
 
@@ -1283,5 +1330,49 @@
   firebase.initializeApp(firebaseConfig);
 </script>
 <script src="app.js"></script>
+
+<!-- Custom Confirm Modal -->
+<div id="customConfirmModal" class="modal-overlay" style="display:none;">
+  <div class="modal-box confirm-modal-box">
+    <h3 id="confirmTitle">Confirm</h3>
+    <p id="confirmMessage">Are you sure?</p>
+    <div class="confirm-actions">
+      <button id="confirmCancel" class="btn btn-outline">Cancel</button>
+      <button id="confirmOk" class="btn btn-primary">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Product Modal -->
+<div id="editProductModal" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Edit Product</h3>
+      <button class="modal-close" onclick="closeEditProductModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Product Name</label>
+        <input type="text" id="editProductName" placeholder="Product name">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <input type="text" id="editProductCategory" placeholder="Category">
+      </div>
+      <div class="form-group">
+        <label>Price</label>
+        <input type="text" id="editProductPrice" placeholder="Price">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="editProductDesc" rows="3" placeholder="Description"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeEditProductModal()">Cancel</button>
+      <button class="btn btn-primary" id="editProductSaveBtn">Save Changes</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
