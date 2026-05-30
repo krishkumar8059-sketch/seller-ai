@@ -2628,7 +2628,7 @@ var RAZORPAY_KEY_ID = 'rzp_test_us_Svb5oL7BuBgYNe';
 var PLANS = {
   free: { name: 'Free Trial', credits: 15, templates: 3, price_monthly: 0, price_yearly: 0, features: ['basic_ai', 'watermark', 'cloud_save'] },
   basic: { name: 'Basic', credits: 50, templates: 999, price_monthly: 24900, price_yearly: 109900, features: ['basic_ai', 'no_watermark', 'cloud_save', 'all_templates'] },
-  pro: { name: 'Pro', credits: 200, templates: 999, price_monthly: 89900, price_yearly: 799900, features: ['basic_ai', 'no_watermark', 'cloud_save', 'all_templates', 'hd_export', 'voiceover'] },
+  pro: { name: 'Pro', credits: 200, templates: 999, price_monthly: 89900, price_yearly: 129900, features: ['basic_ai', 'no_watermark', 'cloud_save', 'all_templates', 'hd_export', 'voiceover'] },
   premium: { name: 'Premium', credits: -1, templates: 999, price_monthly: 149900, price_yearly: 799900, features: ['basic_ai', 'no_watermark', 'cloud_save', 'all_templates', 'hd_export', 'voiceover', 'video_ad', 'shopify', 'whatsapp', 'priority_support'] }
 };
 // Note: Razorpay amounts are in paise (INR * 100), so 249 INR = 24900 paise
