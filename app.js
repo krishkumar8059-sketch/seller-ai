@@ -2622,7 +2622,7 @@ function deleteProduct(id) {
 }
 
 // ===== 4-TIER CREDIT-BASED PLAN SYSTEM =====
-var STRIPE_PUBLISHABLE_KEY = 'pk_test_51TcRg7P36iZaMPQOh6oApw55QbUxGdJ9e8hvQIrhPi4XGeEHeLIGqJ3d5t5gwwOr4JRWys4JeqkqaCdGzkiC0AMT00aCSsEJQ2';
+var RAZORPAY_KEY_ID = 'rzp_test_us_Svb5oL7BuBgYNe';
 
 // Plan definitions
 var PLANS = {
@@ -2631,7 +2631,7 @@ var PLANS = {
   pro: { name: 'Pro', credits: 200, templates: 999, price_monthly: 89900, price_yearly: 799900, features: ['basic_ai', 'no_watermark', 'cloud_save', 'all_templates', 'hd_export', 'voiceover'] },
   premium: { name: 'Premium', credits: -1, templates: 999, price_monthly: 149900, price_yearly: 129900, features: ['basic_ai', 'no_watermark', 'cloud_save', 'all_templates', 'hd_export', 'voiceover', 'video_ad', 'shopify', 'whatsapp', 'priority_support'] }
 };
-// Note: Stripe amounts are in paise (INR * 100), so 249 INR = 24900 paise
+// Note: Razorpay amounts are in paise (INR * 100), so 249 INR = 24900 paise
 
 // Credit system
 function getCredits() {
@@ -2787,9 +2787,13 @@ function startCheckout(planId) {
   }
 
   var email = '';
-  if (firebase.auth().currentUser && firebase.auth().currentUser.email) {
-    email = firebase.auth().currentUser.email;
-  } else if (state.session && state.session.email) {
+  if (firebase.auth && firebase.auth().currentUser) {
+    email = firebase.auth().currentUser.email || '';
+  }
+  if (!email && appData && appData.session && appData.session.email) {
+    email = appData.session.email;
+  }
+  if (!email && state.session && state.session.email) {
     email = state.session.email;
   }
 
@@ -2799,26 +2803,82 @@ function startCheckout(planId) {
     btn.disabled = true;
   }
 
-  fetch('/stripe/create-checkout', {
+  // Step 1: Create Razorpay order via Node Function
+  fetch('/razorpay/create-order', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      email: email,
       planId: planId,
-      period: currentBillingPeriod
+      period: currentBillingPeriod,
+      email: email
     })
   })
   .then(function(response) { return response.json(); })
   .then(function(data) {
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      showToast('Failed to start checkout: ' + (data.error || 'Unknown error'), 'error');
+    if (data.error) {
+      showToast('Error: ' + data.error);
       resetCheckoutButtons();
+      return;
     }
+
+    // Step 2: Open Razorpay checkout modal
+    var options = {
+      key: RAZORPAY_KEY_ID,
+      amount: data.amount,
+      currency: data.currency || 'INR',
+      name: 'ResellFlowAI',
+      description: PLANS[planId].name + ' Plan - ' + (currentBillingPeriod === 'yearly' ? 'Yearly' : 'Monthly'),
+      order_id: data.orderId,
+      prefill: {
+        email: email,
+        name: (firebase.auth && firebase.auth().currentUser && firebase.auth().currentUser.displayName) || (state.session && state.session.name) || ''
+      },
+      theme: {
+        color: '#6C5CE7'
+      },
+      handler: function(response) {
+        // Step 3: Verify payment on server
+        fetch('/razorpay/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_signature: response.razorpay_signature,
+            planId: planId
+          })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(result) {
+          if (result.success) {
+            setPlan(planId);
+            showPaymentNotification('success', 'Payment successful! Your ' + PLANS[planId].name + ' plan is now active.');
+            showToast('Welcome to ' + PLANS[planId].name + '!');
+          } else {
+            showToast('Payment verification failed. Please contact support.');
+            showPaymentNotification('cancel', 'Payment verification failed. If money was deducted, please contact support.');
+          }
+          resetCheckoutButtons();
+        })
+        .catch(function(err) {
+          showToast('Verification error: ' + err.message);
+          resetCheckoutButtons();
+        });
+      },
+      modal: {
+        ondismiss: function() {
+          showToast('Payment cancelled.');
+          resetCheckoutButtons();
+        }
+      }
+    };
+
+    var rzp = new Razorpay(options);
+    rzp.open();
+    resetCheckoutButtons(); // Reset the "Processing..." text since modal handles the flow
   })
   .catch(function(error) {
-    showToast('Checkout error: ' + error.message, 'error');
+    showToast('Checkout error: ' + error.message);
     resetCheckoutButtons();
   });
 }
@@ -2867,14 +2927,16 @@ function isPremiumUser() {
 }
 
 // Update handlePaymentReturn for 4-tier plans
+// Razorpay uses modal-based flow, so URL redirect returns are minimal.
+// This is kept for backward compatibility only.
 function handlePaymentReturn() {
   var urlParams = new URLSearchParams(window.location.search);
   var paymentStatus = urlParams.get('payment');
-  var planId = urlParams.get('plan') || 'basic';
 
   if (paymentStatus === 'success') {
+    var planId = urlParams.get('plan') || 'basic';
     setPlan(planId);
-    showPaymentNotification('success', 'Payment successful! Your ' + (PLANS[planId] ? PLANS[planId].name : planId) + ' plan is now active.');
+    showPaymentNotification('success', 'Payment successful! Your ' + PLANS[planId].name + ' plan is now active.');
     window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
   } else if (paymentStatus === 'cancel') {
     showPaymentNotification('cancel', 'Payment was cancelled. You can try again anytime.');
