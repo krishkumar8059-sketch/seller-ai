@@ -28,7 +28,7 @@ export async function onRequestPost(context) {
     const prices = {
       basic: { monthly: 24900, yearly: 109900 },
       pro: { monthly: 89900, yearly: 799900 },
-      premium: { monthly: 149900, yearly: 129900 }
+      premium: { monthly: 149900, yearly: 799900 }
     };
 
     if (!prices[planId]) {
