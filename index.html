@@ -36,7 +36,6 @@
       <div class="user-avatar" id="userAvatar"></div>
       <div class="user-info">
         <span class="user-name" id="userName"></span>
-        <span id="premiumBadge" class="premium-badge" style="display:none;"></span>
       </div>
       <button class="btn btn-outline btn-sm sidebar-signout-btn" onclick="googleSignOut()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out</button>
     </div>
@@ -64,9 +63,6 @@
     </a>
     <a href="#business" class="nav-item" data-section="business">
       <i class="fa-solid fa-chart-line"></i><span>Business</span>
-    </a>
-    <a href="#premium" class="nav-item" data-section="premium">
-      <i class="fa-solid fa-crown"></i><span>Premium</span>
     </a>
   </nav>
   <div class="sidebar-footer">
@@ -116,7 +112,6 @@
       <a href="#" class="drawer-item" data-section="design"><span class="di-icon">🎨</span> Design</a>
       <a href="#" class="drawer-item" data-section="platform"><span class="di-icon">📱</span> Platform</a>
       <a href="#" class="drawer-item" data-section="business"><span class="di-icon">📊</span> Business</a>
-      <a href="#" class="drawer-item" data-section="premium"><span class="di-icon">💎</span> Premium</a>
     </div>
     <div class="drawer-footer">
       <button id="drawerThemeToggle" class="drawer-action-btn">🌙 Dark Mode</button>
@@ -208,11 +203,6 @@
         <h3>Business Hub</h3>
         <p>Analytics, customer leads, product catalog management</p>
       </div>
-      <div class="feature-preview-card" onclick="navigateTo('premium')">
-        <div class="fpc-icon" style="background:linear-gradient(135deg,#e17055,#d63031)"><i class="fa-solid fa-crown"></i></div>
-        <h3>Premium & Future</h3>
-        <p>Unlimited AI, HD export, voiceover, integrations & more</p>
-      </div>
     </div>
   </section>
 
@@ -261,7 +251,7 @@
           <select id="pd-tone">
             <option value="professional">Professional</option>
             <option value="casual">Casual & Friendly</option>
-            <option value="luxury">Luxury & Premium</option>
+            <option value="luxury">Luxury</option>
             <option value="urgent">Urgent & Sales</option>
           </select>
         </div>
@@ -510,7 +500,7 @@
         <div class="fc-icon"><i class="fa-solid fa-image"></i></div>
         <div>
           <h2>AI Poster & Banner Maker</h2>
-          <p>Generate premium poster previews with templates, palettes, and text overlays</p>
+          <p>Generate high-quality poster previews with templates, palettes, and text overlays</p>
         </div>
       </div>
       <div class="feature-card-body">
@@ -1019,75 +1009,6 @@
   </section>
 
   <!-- PRICING SECTION (removed — flat 30-credit/month system in place) -->
-
-  <!-- PREMIUM SECTION -->
-  <section class="page-section" id="section-premium">
-    <div class="section-header">
-      <h1><i class="fa-solid fa-crown"></i> Premium & Future Features</h1>
-      <p>Unlock unlimited power and get early access to upcoming features</p>
-    </div>
-
-    <!-- Premium Banner -->
-    <div class="premium-banner">
-      <div class="premium-badge">👑 PREMIUM</div>
-      <h2>Unlock the Full Power of ResellFlowAI</h2>
-      <p>Get AI generations, HD exports, watermark-free content, and early access to upcoming features.</p>
-    </div>
-
-    <!-- Premium Features Grid -->
-    <div class="premium-features-grid">
-      <div class="premium-feature-card">
-        <div class="pfc-icon"><i class="fa-solid fa-infinity"></i></div>
-        <h3>AI Generations</h3>
-        <p>Generate product descriptions, ads, scripts, and more with your monthly credits.</p>
-        <span class="pfc-badge">Included</span>
-      </div>
-      <div class="premium-feature-card">
-        <div class="pfc-icon"><i class="fa-solid fa-droplet-slash"></i></div>
-        <h3>No Watermark</h3>
-        <p>Export all posters, banners, and designs without any ResellFlow watermark.</p>
-        <span class="pfc-badge">Included</span>
-      </div>
-      <div class="premium-feature-card">
-        <div class="pfc-icon"><i class="fa-solid fa-high-definition"></i></div>
-        <h3>HD Export</h3>
-        <p>Download all generated images and designs in high definition for professional use.</p>
-        <span class="pfc-badge">Included</span>
-      </div>
-      <div class="premium-feature-card">
-        <div class="pfc-icon"><i class="fa-solid fa-microphone"></i></div>
-        <h3>Voiceover Generator</h3>
-        <p>Add AI-generated voiceovers to your video scripts and ad content.</p>
-        <span class="pfc-badge coming-soon">Coming Soon</span>
-        <button class="btn btn-sm btn-outline" onclick="tryVoiceover()"><i class="fa-solid fa-play"></i> Try Demo</button>
-        <div class="output-area" id="vo-output" style="display:none"></div>
-      </div>
-      <div class="premium-feature-card">
-        <div class="pfc-icon"><i class="fa-solid fa-film"></i></div>
-        <h3>Video Ad Creator</h3>
-        <p>Create full video ads with motion graphics, transitions, and AI narration.</p>
-        <span class="pfc-badge coming-soon">Coming Soon</span>
-        <button class="btn btn-sm btn-outline" onclick="tryVideoAd()"><i class="fa-solid fa-play"></i> Try Demo</button>
-        <div class="output-area" id="vac-output" style="display:none"></div>
-      </div>
-      <div class="premium-feature-card">
-        <div class="pfc-icon"><i class="fa-solid fa-store"></i></div>
-        <h3>Shopify & Meesho Integration</h3>
-        <p>Sync your product catalog directly with Shopify and Meesho stores.</p>
-        <span class="pfc-badge coming-soon">Coming Soon</span>
-        <button class="btn btn-sm btn-outline" onclick="tryShopifyIntegration()"><i class="fa-solid fa-plug"></i> Try Demo</button>
-        <div class="output-area" id="si-output" style="display:none"></div>
-      </div>
-      <div class="premium-feature-card">
-        <div class="pfc-icon"><i class="fa-brands fa-whatsapp"></i></div>
-        <h3>WhatsApp Integration</h3>
-        <p>Send generated ads and catalogs directly to customers via WhatsApp Business API.</p>
-        <span class="pfc-badge coming-soon">Coming Soon</span>
-        <button class="btn btn-sm btn-outline" onclick="tryWhatsAppIntegration()"><i class="fa-solid fa-plug"></i> Try Demo</button>
-        <div class="output-area" id="wa-output" style="display:none"></div>
-      </div>
-    </div>
-  </section>
 
 </main>
 

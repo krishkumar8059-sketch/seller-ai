@@ -37,7 +37,7 @@ function saveState() {
 }
 
 // ===== SPA ROUTER =====
-var VALID_SECTIONS = ['home', 'core', 'marketing', 'design', 'platform', 'business', 'premium'];
+var VALID_SECTIONS = ['home', 'core', 'marketing', 'design', 'platform', 'business'];
 
 function navigateTo(section) {
   if (!isAuthenticated()) {
@@ -245,10 +245,10 @@ function generateProductDescription() {
   var features = document.getElementById('pd-features').value.trim();
   var tone = document.getElementById('pd-tone').value;
 
-  var featureList = features ? features.split(',').map(function(f) { return f.trim(); }).filter(Boolean) : ['Premium Quality', 'Great Value', 'Fast Delivery'];
+  var featureList = features ? features.split(',').map(function(f) { return f.trim(); }).filter(Boolean) : ['High Quality', 'Great Value', 'Fast Delivery'];
 
   var toneStyles = {
-    professional: { adj: 'Premium', verb: 'Elevate', cta: 'Order Now' },
+    professional: { adj: 'Professional', verb: 'Elevate', cta: 'Order Now' },
     casual: { adj: 'Awesome', verb: 'Level up', cta: 'Grab Yours Today!' },
     luxury: { adj: 'Exquisite', verb: 'Indulge in', cta: 'Shop the Collection' },
     urgent: { adj: 'Must-Have', verb: "Don't Miss", cta: 'Buy Now \u2014 Limited Stock!' }
@@ -303,7 +303,7 @@ function generateAdCreative() {
   var product = document.getElementById('ad-product').value.trim();
   if (!product) { showToast('Please enter a product name', 'warning'); return; }
   var platform = document.getElementById('ad-platform').value;
-  var points = document.getElementById('ad-points').value.trim() || 'Premium quality, Best price, Fast delivery';
+  var points = document.getElementById('ad-points').value.trim() || 'High quality, Best price, Fast delivery';
 
   var pointList = points.split(',').map(function(p) { return p.trim(); }).filter(Boolean);
 
@@ -381,7 +381,7 @@ function generatePriceSuggestion() {
     '<div class="price-arrow">\u2192</div>' +
     '<div class="price-box"><div class="pb-label">Recommended</div><div class="pb-value">\u20B9' + suggestedMid + '</div></div>' +
     '<div class="price-arrow">\u2192</div>' +
-    '<div class="price-box"><div class="pb-label">Premium</div><div class="pb-value">\u20B9' + suggestedMax + '</div></div>' +
+    '<div class="price-box"><div class="pb-label">Upscale</div><div class="pb-value">\u20B9' + suggestedMax + '</div></div>' +
     '</div>' +
     '<p style="margin-top:16px;color:var(--text-secondary);font-size:13px">' +
     '<strong>Reasoning:</strong> Based on the ' + category + ' category, typical markup ranges from ' +
@@ -490,7 +490,7 @@ function generateVideoScript() {
     '"' + message + '. Just look at this quality! Every detail is crafted to perfection."\n\n' +
     'VISUAL: Product demonstration / unboxing / in-use shots\n\n' +
     'KEY SELLING POINTS (overlay text):\n' +
-    '  \u2728 Premium Quality\n' +
+    '  \u2728 High Quality\n' +
     '  \uD83D\uDCB0 Best Price\n' +
     '  \uD83D\uDE9A Free Delivery\n\n' +
     'CTA (15-20 sec):\n' +
@@ -522,7 +522,7 @@ function generateCaptionHashtag() {
       'Me: I don\'t need anything\nAlso me: *adds ' + product + ' to cart immediately* \uD83D\uDE02\uD83D\uDED2'
     ],
     professional: [
-      'Introducing ' + product + ' \u2014 designed for those who accept nothing but the best. Premium quality meets exceptional value.',
+      'Introducing ' + product + ' \u2014 designed for those who accept nothing but the best. Superior quality meets exceptional value.',
       'Elevate your standards with ' + product + '. Trusted by professionals, loved by customers. Discover the difference today.',
       'When quality matters, choose ' + product + '. Crafted with precision, delivered with care. Shop the collection now.'
     ],
@@ -544,7 +544,7 @@ function generateCaptionHashtag() {
   var hashtagSets = [
     '#' + product.replace(/\s+/g, '') + ' #Trending #MustHave #ShopNow #BestDeals #OnlineShopping #Viral #InstaDaily #Sale #ShoppingAddict',
     '#' + product.replace(/\s+/g, '') + ' #NewArrival #LimitedEdition #ShopLocal #DealOfTheDay #FashionLovers #StyleInspo #TrendingNow #MustBuy',
-    '#' + product.replace(/\s+/g, '') + ' #HottestDeal #FlashSale #Discount #PremiumQuality #CustomerFavorite #TopRated #BestBuy #DealAlert'
+    '#' + product.replace(/\s+/g, '') + ' #HottestDeal #FlashSale #Discount #TopQuality #CustomerFavorite #TopRated #BestBuy #DealAlert'
   ];
   var hashtags = hashtagSets[Math.floor(Math.random() * hashtagSets.length)];
 
@@ -1925,7 +1925,7 @@ function drawEventFlyer(canvas, ctx, data) {
   ctx.restore();
 }
 
-// Main generatePoster - replaced with premium engine
+// Main generatePoster
 function generatePoster() {
   if (!isAuthenticated()) { showAuthModal(); return; }
   if (!useCredit()) return;
@@ -1977,7 +1977,7 @@ function generatePoster() {
   drawFn(canvas, ctx, data);
 
   document.getElementById('poster-preview-wrap').style.display = 'block';
-  trackGeneration('poster-banner', headline, 'Premium poster: ' + selectedTemplate);
+  trackGeneration('poster-banner', headline, 'Poster: ' + selectedTemplate);
   showToast('Poster generated with ' + selectedTemplate + ' template!', 'success');
 }
 
@@ -2116,7 +2116,7 @@ function generateBrandKit() {
   };
 
   var personalities = {
-    fashion: 'Sophisticated, Bold, Trend-setting, Premium',
+    fashion: 'Sophisticated, Bold, Trend-setting, Refined',
     beauty: 'Elegant, Nurturing, Trustworthy, Inspiring',
     food: 'Warm, Inviting, Authentic, Energetic',
     tech: 'Innovative, Reliable, Clean, Forward-thinking',
@@ -2654,88 +2654,6 @@ function updateCreditDisplay() {
   showCreditExhaustedMessage(state.credits < CREDITS_PER_GENERATION);
 
   updateMobileHeader();
-}
-
-// Premium feature demos (no plan-gating, available to all users)
-function tryVoiceover() {
-  if (!isAuthenticated()) { showAuthModal(); return; }
-  var output = document.getElementById('vo-output');
-  output.style.display = 'block';
-  output.innerHTML = '<h3>Voiceover Demo</h3>' +
-    '<p style="color:var(--text-secondary);font-size:13px;line-height:1.8">' +
-    '<em>[AI Voiceover Simulation]</em>\n\n' +
-    '"Introducing the product that everyone\'s been waiting for... Imagine holding perfection in your hands. ' +
-    'Every detail crafted with care. Every feature designed for you. ' +
-    'This isn\'t just a product \u2014 it\'s a game changer. ' +
-    'Available now. Order today and experience the difference."\n\n' +
-    'Voice: Professional Female | Speed: 1.0x | Duration: ~15 sec\n' +
-    'Tone: Confident, Warm, Persuasive' +
-    '</p>';
-  showToast('Voiceover demo generated!', 'info');
-}
-
-function tryVideoAd() {
-  if (!isAuthenticated()) { showAuthModal(); return; }
-  var output = document.getElementById('vac-output');
-  output.style.display = 'block';
-  output.innerHTML = '<h3>Video Ad Demo</h3>' +
-    '<p style="color:var(--text-secondary);font-size:13px;line-height:1.8">' +
-    '<em>[AI Video Ad Simulation]</em>\n\n' +
-    'SCENE 1 (0-2s): Fade in from black. Product hero shot with dramatic lighting.\n' +
-    'SCENE 2 (2-5s): Text overlay: "The Wait Is Over" with particle effects.\n' +
-    'SCENE 3 (5-10s): Product demo montage \u2014 3 quick cuts showing features.\n' +
-    'SCENE 4 (10-15s): Customer testimonial card with star rating.\n' +
-    'SCENE 5 (15-20s): Price reveal with countdown timer. CTA: "Shop Now"\n\n' +
-    'Resolution: 1080x1920 (9:16) | Format: MP4\n' +
-    'Music: Upbeat Corporate | Duration: 20s' +
-    '</p>';
-  showToast('Video ad demo generated!', 'info');
-}
-
-function tryShopifyIntegration() {
-  if (!isAuthenticated()) { showAuthModal(); return; }
-  var output = document.getElementById('si-output');
-  output.style.display = 'block';
-  output.innerHTML = '<h3>Shopify &amp; Meesho Integration Demo</h3>' +
-    '<p style="color:var(--text-secondary);font-size:13px;line-height:1.8">' +
-    '<em>[Integration Simulation]</em>\n\n' +
-    'Connected Stores:\n' +
-    '  \u2705 Shopify: my-store.myshopify.com\n' +
-    '  \u2705 Meesho: meesho.com/seller/my-shop\n\n' +
-    'Sync Status:\n' +
-    '  \u2022 ' + state.products.length + ' products synced\n' +
-    '  \u2022 Last sync: ' + new Date().toLocaleString() + '\n' +
-    '  \u2022 Inventory: Real-time sync enabled\n\n' +
-    'Actions Available:\n' +
-    '  \u2022 Push new products to store\n' +
-    '  \u2022 Update prices across platforms\n' +
-    '  \u2022 Sync inventory levels\n' +
-    '  \u2022 Import orders for fulfillment' +
-    '</p>';
-  showToast('Shopify/Meesho integration demo!', 'info');
-}
-
-function tryWhatsAppIntegration() {
-  if (!isAuthenticated()) { showAuthModal(); return; }
-  var output = document.getElementById('wa-output');
-  output.style.display = 'block';
-  output.innerHTML = '<h3>WhatsApp Integration Demo</h3>' +
-    '<p style="color:var(--text-secondary);font-size:13px;line-height:1.8">' +
-    '<em>[WhatsApp Business API Simulation]</em>\n\n' +
-    'Connected: WhatsApp Business\n' +
-    'Phone: +91 98765 43210\n\n' +
-    'Broadcast Templates:\n' +
-    '  New Product Alert\n' +
-    '  Flash Sale Notification\n' +
-    '  Order Confirmation\n' +
-    '  Delivery Update\n\n' +
-    'Quick Actions:\n' +
-    '  \u2022 Send catalog to customer\n' +
-    '  \u2022 Broadcast sale alert to ' + state.leads.length + ' leads\n' +
-    '  \u2022 Auto-reply to inquiries\n' +
-    '  \u2022 Share payment links' +
-    '</p>';
-  showToast('WhatsApp integration demo!', 'info');
 }
 
 // ===== MOBILE DRAWER & HEADER =====
