@@ -15,11 +15,8 @@ function defaultState() {
     currentOTP: null,
     session: null,
     lastSave: Date.now(),
-    plan: 'free',
-    credits: 15,
-    trialStartDate: null,
-    trialUsed: false,
-    planStartDate: null
+    credits: 30,
+    creditResetTimestamp: null
   };
 }
 
@@ -40,7 +37,7 @@ function saveState() {
 }
 
 // ===== SPA ROUTER =====
-var VALID_SECTIONS = ['home', 'core', 'marketing', 'design', 'platform', 'business', 'premium', 'pricing'];
+var VALID_SECTIONS = ['home', 'core', 'marketing', 'design', 'platform', 'business'];
 
 function navigateTo(section) {
   if (!isAuthenticated()) {
@@ -102,24 +99,9 @@ window.addEventListener('DOMContentLoaded', function() {
   updateMobileDashboard();
   updateStorageStats();
   applyTheme();
-  handlePaymentReturn();
-  updatePlanUI();
+  checkAndResetCredits();
   updateCreditDisplay();
   updateMobileHeader();
-
-  // Billing toggle
-  var monthlyToggle = document.getElementById('monthlyToggle');
-  var yearlyToggle = document.getElementById('yearlyToggle');
-  if (monthlyToggle) monthlyToggle.addEventListener('click', function() { toggleBillingPeriod('monthly'); });
-  if (yearlyToggle) yearlyToggle.addEventListener('click', function() { toggleBillingPeriod('yearly'); });
-
-  // Checkout buttons
-  document.querySelectorAll('.checkout-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() { startCheckout(btn.dataset.plan); });
-  });
-
-  var premiumUpgradeBtn = document.getElementById('premiumUpgradeBtn');
-  if (premiumUpgradeBtn) premiumUpgradeBtn.addEventListener('click', function() { navigateTo('pricing'); });
 
   // Hamburger button
   var hamburgerBtn = document.getElementById('hamburgerBtn');
@@ -263,10 +245,10 @@ function generateProductDescription() {
   var features = document.getElementById('pd-features').value.trim();
   var tone = document.getElementById('pd-tone').value;
 
-  var featureList = features ? features.split(',').map(function(f) { return f.trim(); }).filter(Boolean) : ['Premium Quality', 'Great Value', 'Fast Delivery'];
+  var featureList = features ? features.split(',').map(function(f) { return f.trim(); }).filter(Boolean) : ['High Quality', 'Great Value', 'Fast Delivery'];
 
   var toneStyles = {
-    professional: { adj: 'Premium', verb: 'Elevate', cta: 'Order Now' },
+    professional: { adj: 'Professional', verb: 'Elevate', cta: 'Order Now' },
     casual: { adj: 'Awesome', verb: 'Level up', cta: 'Grab Yours Today!' },
     luxury: { adj: 'Exquisite', verb: 'Indulge in', cta: 'Shop the Collection' },
     urgent: { adj: 'Must-Have', verb: "Don't Miss", cta: 'Buy Now \u2014 Limited Stock!' }
@@ -321,7 +303,7 @@ function generateAdCreative() {
   var product = document.getElementById('ad-product').value.trim();
   if (!product) { showToast('Please enter a product name', 'warning'); return; }
   var platform = document.getElementById('ad-platform').value;
-  var points = document.getElementById('ad-points').value.trim() || 'Premium quality, Best price, Fast delivery';
+  var points = document.getElementById('ad-points').value.trim() || 'High quality, Best price, Fast delivery';
 
   var pointList = points.split(',').map(function(p) { return p.trim(); }).filter(Boolean);
 
@@ -399,7 +381,7 @@ function generatePriceSuggestion() {
     '<div class="price-arrow">\u2192</div>' +
     '<div class="price-box"><div class="pb-label">Recommended</div><div class="pb-value">\u20B9' + suggestedMid + '</div></div>' +
     '<div class="price-arrow">\u2192</div>' +
-    '<div class="price-box"><div class="pb-label">Premium</div><div class="pb-value">\u20B9' + suggestedMax + '</div></div>' +
+    '<div class="price-box"><div class="pb-label">Upscale</div><div class="pb-value">\u20B9' + suggestedMax + '</div></div>' +
     '</div>' +
     '<p style="margin-top:16px;color:var(--text-secondary);font-size:13px">' +
     '<strong>Reasoning:</strong> Based on the ' + category + ' category, typical markup ranges from ' +
@@ -508,7 +490,7 @@ function generateVideoScript() {
     '"' + message + '. Just look at this quality! Every detail is crafted to perfection."\n\n' +
     'VISUAL: Product demonstration / unboxing / in-use shots\n\n' +
     'KEY SELLING POINTS (overlay text):\n' +
-    '  \u2728 Premium Quality\n' +
+    '  \u2728 High Quality\n' +
     '  \uD83D\uDCB0 Best Price\n' +
     '  \uD83D\uDE9A Free Delivery\n\n' +
     'CTA (15-20 sec):\n' +
@@ -540,7 +522,7 @@ function generateCaptionHashtag() {
       'Me: I don\'t need anything\nAlso me: *adds ' + product + ' to cart immediately* \uD83D\uDE02\uD83D\uDED2'
     ],
     professional: [
-      'Introducing ' + product + ' \u2014 designed for those who accept nothing but the best. Premium quality meets exceptional value.',
+      'Introducing ' + product + ' \u2014 designed for those who accept nothing but the best. Superior quality meets exceptional value.',
       'Elevate your standards with ' + product + '. Trusted by professionals, loved by customers. Discover the difference today.',
       'When quality matters, choose ' + product + '. Crafted with precision, delivered with care. Shop the collection now.'
     ],
@@ -562,7 +544,7 @@ function generateCaptionHashtag() {
   var hashtagSets = [
     '#' + product.replace(/\s+/g, '') + ' #Trending #MustHave #ShopNow #BestDeals #OnlineShopping #Viral #InstaDaily #Sale #ShoppingAddict',
     '#' + product.replace(/\s+/g, '') + ' #NewArrival #LimitedEdition #ShopLocal #DealOfTheDay #FashionLovers #StyleInspo #TrendingNow #MustBuy',
-    '#' + product.replace(/\s+/g, '') + ' #HottestDeal #FlashSale #Discount #PremiumQuality #CustomerFavorite #TopRated #BestBuy #DealAlert'
+    '#' + product.replace(/\s+/g, '') + ' #HottestDeal #FlashSale #Discount #TopQuality #CustomerFavorite #TopRated #BestBuy #DealAlert'
   ];
   var hashtags = hashtagSets[Math.floor(Math.random() * hashtagSets.length)];
 
@@ -687,7 +669,6 @@ function googleSignIn() {
     if (result.user) {
       hideAuthModal();
       updateAuthUI(result.user);
-      updatePlanUI();
       updateCreditDisplay();
       updateMobileHeader();
       showToast('Welcome, ' + (result.user.displayName || result.user.email) + '!', 'success');
@@ -797,7 +778,6 @@ function verifyOTP() {
     saveState();
     hideAuthModal();
     updateAuthUIFromSession();
-    updatePlanUI();
     updateCreditDisplay();
     updateMobileHeader();
     showToast('Welcome, ' + name + '!', 'success');
@@ -903,14 +883,12 @@ function initFirebaseAuth() {
       // User is signed in via Firebase - always hide modal and update UI
       hideAuthModal();
       updateAuthUI(user);
-      updatePlanUI();
       updateCreditDisplay();
     } else {
       // Check if user has localStorage session (email auth)
       if (state.session && state.session.isAuthenticated) {
         hideAuthModal();
         updateAuthUIFromSession();
-        updatePlanUI();
         updateCreditDisplay();
       } else {
         // Genuine signed-out state - show auth modal
@@ -1947,18 +1925,10 @@ function drawEventFlyer(canvas, ctx, data) {
   ctx.restore();
 }
 
-// Main generatePoster - replaced with premium engine
+// Main generatePoster
 function generatePoster() {
   if (!isAuthenticated()) { showAuthModal(); return; }
   if (!useCredit()) return;
-  // Check template limit for free trial users
-  var selectedTemplate = (state.settings && state.settings.selectedTemplate) || 'minimalist';
-  var templateIndex = ['minimalist','boldsale','elegant','festival','productshowcase','socialstory','quotecard','eventflyer'].indexOf(selectedTemplate);
-  if (!isTemplateAllowed(templateIndex)) {
-    showToast('Free trial allows only 3 templates. Upgrade to Basic for all templates!', 'warning');
-    showUpgradePrompt('basic');
-    return;
-  }
   var headline = document.getElementById('ps-headline').value.trim() || 'MEGA SALE';
   var subhead = document.getElementById('ps-subhead').value.trim() || 'Up to 70% Off';
   var body = document.getElementById('ps-body').value.trim();
@@ -2006,19 +1976,8 @@ function generatePoster() {
   var drawFn = templateFns[selectedTemplate] || drawMinimalist;
   drawFn(canvas, ctx, data);
 
-  // Brand watermark (shown in preview for free/basic users)
-  if (!canRemoveWatermark()) {
-    ctx.save();
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.font = '400 ' + Math.max(10, Math.min(canvas.width, canvas.height) * 0.025) + 'px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('ResellFlowAI', canvas.width / 2, canvas.height * 0.95);
-    ctx.restore();
-  }
-
   document.getElementById('poster-preview-wrap').style.display = 'block';
-  trackGeneration('poster-banner', headline, 'Premium poster: ' + selectedTemplate);
+  trackGeneration('poster-banner', headline, 'Poster: ' + selectedTemplate);
   showToast('Poster generated with ' + selectedTemplate + ' template!', 'success');
 }
 
@@ -2035,9 +1994,8 @@ function downloadPoster() {
   var badge = document.getElementById('ps-badge').value.trim();
   var size = document.getElementById('ps-size').value;
 
-  // Pro/Premium: 2x HD without watermark; Free/Basic: 1x with watermark
-  var scale = canDownloadHD() ? 2 : 1;
-  var showWatermark = !canRemoveWatermark();
+  // HD 2x export, no watermark
+  var scale = 2;
 
   var sizeMap = {
     'instagram-post': [600, 600],
@@ -2076,27 +2034,12 @@ function downloadPoster() {
   var drawFn = templateFns[selectedTemplate] || drawMinimalist;
   drawFn(offCanvas, offCtx, data);
 
-  // Brand watermark (only for free/basic users)
-  if (showWatermark) {
-    offCtx.save();
-    offCtx.fillStyle = 'rgba(255,255,255,0.4)';
-    offCtx.font = '400 ' + Math.max(10, Math.min(dims[0], dims[1]) * 0.025) + 'px Inter, sans-serif';
-    offCtx.textAlign = 'center';
-    offCtx.textBaseline = 'middle';
-    offCtx.fillText('ResellFlowAI', dims[0] / 2, dims[1] * 0.95);
-    offCtx.restore();
-  }
-
   var link = document.createElement('a');
-  link.download = canDownloadHD() ? 'resellflow-poster-hd.png' : 'resellflow-poster.png';
+  link.download = 'resellflow-poster-hd.png';
   link.href = offCanvas.toDataURL('image/png', 1.0);
   link.click();
 
-  if (!canRemoveWatermark()) {
-    showToast('Upgrade to Pro for HD export without watermark!', 'info');
-  } else {
-    showToast('HD Poster downloaded (no watermark)!', 'success');
-  }
+  showToast('HD Poster downloaded!', 'success');
 }
 
 // Festival Sale Templates
@@ -2173,7 +2116,7 @@ function generateBrandKit() {
   };
 
   var personalities = {
-    fashion: 'Sophisticated, Bold, Trend-setting, Premium',
+    fashion: 'Sophisticated, Bold, Trend-setting, Refined',
     beauty: 'Elegant, Nurturing, Trustworthy, Inspiring',
     food: 'Warm, Inviting, Authentic, Energetic',
     tech: 'Innovative, Reliable, Clean, Forward-thinking',
@@ -2621,43 +2564,79 @@ function deleteProduct(id) {
   });
 }
 
-// ===== 4-TIER CREDIT-BASED PLAN SYSTEM =====
-var RAZORPAY_KEY_ID = 'rzp_test_us_Svb5oL7BuBgYNe';
+// ===== FLAT 30-CREDITS/MONTH SYSTEM =====
+var CREDITS_PER_MONTH = 30;
+var CREDITS_PER_GENERATION = 5;
 
-// Plan definitions
-var PLANS = {
-  free: { name: 'Free Trial', credits: 15, templates: 3, price_monthly: 0, price_yearly: 0, features: ['basic_ai', 'watermark', 'cloud_save'] },
-  basic: { name: 'Basic', credits: 50, templates: 999, price_monthly: 24900, price_yearly: 109900, features: ['basic_ai', 'no_watermark', 'cloud_save', 'all_templates'] },
-  pro: { name: 'Pro', credits: 200, templates: 999, price_monthly: 89900, price_yearly: 129900, features: ['basic_ai', 'no_watermark', 'cloud_save', 'all_templates', 'hd_export', 'voiceover'] },
-  premium: { name: 'Premium', credits: -1, templates: 999, price_monthly: 149900, price_yearly: 799900, features: ['basic_ai', 'no_watermark', 'cloud_save', 'all_templates', 'hd_export', 'voiceover', 'video_ad', 'shopify', 'whatsapp', 'priority_support'] }
-};
-// Note: Razorpay amounts are in paise (INR * 100), so 249 INR = 24900 paise
+// Check if credits need a monthly reset
+function checkAndResetCredits() {
+  var now = Date.now();
+  var resetTs = state.creditResetTimestamp;
+
+  if (!resetTs) {
+    // First time or legacy: set reset timestamp and ensure 30 credits
+    state.creditResetTimestamp = getStartOfNextMonth(now);
+    if (typeof state.credits !== 'number' || state.credits < 0) {
+      state.credits = CREDITS_PER_MONTH;
+    }
+    saveState();
+    return;
+  }
+
+  // If current time is past the reset timestamp, reset credits
+  if (now >= resetTs) {
+    state.credits = CREDITS_PER_MONTH;
+    state.creditResetTimestamp = getStartOfNextMonth(now);
+    saveState();
+  }
+}
+
+// Get the timestamp for the start of the next calendar month
+function getStartOfNextMonth(timestamp) {
+  var d = new Date(timestamp);
+  // Move to the 1st of the next month at 00:00
+  if (d.getMonth() === 11) {
+    d = new Date(d.getFullYear() + 1, 0, 1, 0, 0, 0, 0);
+  } else {
+    d = new Date(d.getFullYear(), d.getMonth() + 1, 1, 0, 0, 0, 0);
+  }
+  return d.getTime();
+}
 
 // Credit system
 function getCredits() {
+  checkAndResetCredits();
   return state.credits || 0;
 }
 
 function useCredit() {
-  var plan = getPlan();
-  if (plan === 'premium') return true; // unlimited
+  checkAndResetCredits();
 
-  if (state.credits <= 0) {
-    showToast('No credits remaining! Upgrade your plan for more credits.', 'warning');
-    showUpgradePrompt();
+  if (state.credits < CREDITS_PER_GENERATION) {
+    showToast('Monthly credit limit reached. Credits will reset next month.', 'warning');
+    showCreditExhaustedMessage(true);
     return false;
   }
-  state.credits--;
+
+  state.credits -= CREDITS_PER_GENERATION;
   saveState();
   updateCreditDisplay();
+  showCreditExhaustedMessage(false);
   return true;
 }
 
+function showCreditExhaustedMessage(show) {
+  var msgEl = document.getElementById('creditExhaustedMsg');
+  if (msgEl) {
+    msgEl.style.display = show ? 'block' : 'none';
+  }
+}
+
 function updateCreditDisplay() {
+  checkAndResetCredits();
   var countEl = document.getElementById('creditCount');
   var labelEl = document.getElementById('planLabel');
   var counterEl = document.getElementById('creditCounter');
-  var plan = getPlan();
 
   // Show credit counter only when authenticated
   if (counterEl) {
@@ -2665,432 +2644,16 @@ function updateCreditDisplay() {
   }
 
   if (countEl) {
-    if (PLANS[plan] && PLANS[plan].credits === -1) {
-      countEl.textContent = '\u221E';
-    } else {
-      countEl.textContent = state.credits || 0;
-    }
+    countEl.textContent = state.credits || 0;
   }
   if (labelEl) {
-    labelEl.textContent = PLANS[plan] ? PLANS[plan].name : 'Free Trial';
+    labelEl.textContent = CREDITS_PER_MONTH + '/mo';
   }
+
+  // Show/hide exhausted message
+  showCreditExhaustedMessage(state.credits < CREDITS_PER_GENERATION);
+
   updateMobileHeader();
-}
-
-// Plan getter/setter
-function getPlan() {
-  return state.plan || 'free';
-}
-
-function setPlan(planId) {
-  state.plan = planId;
-  // Set credits based on plan
-  if (planId === 'premium') {
-    state.credits = -1; // unlimited
-  } else if (planId !== 'free') {
-    state.credits = PLANS[planId].credits;
-  }
-  // For free trial, keep existing credits (15)
-  state.planStartDate = Date.now();
-  saveState();
-  updatePlanUI();
-  updateCreditDisplay();
-}
-
-function hasFeature(feature) {
-  var plan = getPlan();
-  return PLANS[plan] && PLANS[plan].features.indexOf(feature) !== -1 || false;
-}
-
-// Free trial system
-function startFreeTrial() {
-  if (state.trialUsed) {
-    showToast('Free trial already used. Please upgrade to a paid plan.', 'warning');
-    return;
-  }
-  state.plan = 'free';
-  state.credits = 15;
-  state.trialStartDate = Date.now();
-  state.trialUsed = true;
-  state.planStartDate = Date.now();
-  saveState();
-  updatePlanUI();
-  updateCreditDisplay();
-  showToast('Free trial started! You have 15 credits and 3 templates for 3 days.', 'success');
-}
-
-function isTrialExpired() {
-  if (getPlan() !== 'free') return false;
-  if (!state.trialStartDate) return true;
-  var threeDays = 3 * 24 * 60 * 60 * 1000;
-  return Date.now() - state.trialStartDate > threeDays;
-}
-
-function getTrialDaysLeft() {
-  if (!state.trialStartDate) return 0;
-  var threeDays = 3 * 24 * 60 * 60 * 1000;
-  var remaining = threeDays - (Date.now() - state.trialStartDate);
-  return Math.max(0, Math.ceil(remaining / (24 * 60 * 60 * 1000)));
-}
-
-// Template limiting
-function getAvailableTemplates() {
-  var plan = getPlan();
-  var maxTemplates = PLANS[plan] ? PLANS[plan].templates : 3;
-  return maxTemplates;
-}
-
-function isTemplateAllowed(templateIndex) {
-  var plan = getPlan();
-  var maxTemplates = PLANS[plan] ? PLANS[plan].templates : 3;
-  return templateIndex < maxTemplates;
-}
-
-// Billing toggle
-var currentBillingPeriod = 'monthly';
-
-function toggleBillingPeriod(period) {
-  currentBillingPeriod = period;
-  // Update all price displays
-  document.querySelectorAll('.price-monthly').forEach(function(el) {
-    el.style.display = period === 'monthly' ? 'inline' : 'none';
-  });
-  document.querySelectorAll('.price-yearly').forEach(function(el) {
-    el.style.display = period === 'yearly' ? 'inline' : 'none';
-  });
-  document.querySelectorAll('.save-badge').forEach(function(el) {
-    el.style.display = period === 'yearly' ? 'inline-block' : 'none';
-  });
-  // Update toggle UI
-  var monthlyBtn = document.getElementById('monthlyToggle');
-  var yearlyBtn = document.getElementById('yearlyToggle');
-  if (monthlyBtn) {
-    if (period === 'monthly') monthlyBtn.classList.add('active');
-    else monthlyBtn.classList.remove('active');
-  }
-  if (yearlyBtn) {
-    if (period === 'yearly') yearlyBtn.classList.add('active');
-    else yearlyBtn.classList.remove('active');
-  }
-}
-
-// Checkout flow
-function startCheckout(planId) {
-  if (!isAuthenticated()) {
-    showAuthModal();
-    return;
-  }
-
-  if (planId === 'free') {
-    startFreeTrial();
-    return;
-  }
-
-  var email = '';
-  if (firebase.auth && firebase.auth().currentUser) {
-    email = firebase.auth().currentUser.email || '';
-  }
-  if (!email && appData && appData.session && appData.session.email) {
-    email = appData.session.email;
-  }
-  if (!email && state.session && state.session.email) {
-    email = state.session.email;
-  }
-
-  var btn = document.querySelector('[data-plan="' + planId + '"]');
-  if (btn) {
-    btn.textContent = 'Processing...';
-    btn.disabled = true;
-  }
-
-  // Step 1: Create Razorpay order via Node Function
-  fetch('/razorpay/create-order', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      planId: planId,
-      period: currentBillingPeriod,
-      email: email
-    })
-  })
-  .then(function(response) { return response.json(); })
-  .then(function(data) {
-    if (data.error) {
-      showToast('Error: ' + data.error);
-      resetCheckoutButtons();
-      return;
-    }
-
-    // Step 2: Open Razorpay checkout modal
-    var options = {
-      key: RAZORPAY_KEY_ID,
-      amount: data.amount,
-      currency: data.currency || 'INR',
-      name: 'ResellFlowAI',
-      description: PLANS[planId].name + ' Plan - ' + (currentBillingPeriod === 'yearly' ? 'Yearly' : 'Monthly'),
-      order_id: data.orderId,
-      prefill: {
-        email: email,
-        name: (firebase.auth && firebase.auth().currentUser && firebase.auth().currentUser.displayName) || (state.session && state.session.name) || ''
-      },
-      theme: {
-        color: '#6C5CE7'
-      },
-      handler: function(response) {
-        // Step 3: Verify payment on server
-        fetch('/razorpay/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_signature: response.razorpay_signature,
-            planId: planId
-          })
-        })
-        .then(function(res) { return res.json(); })
-        .then(function(result) {
-          if (result.success) {
-            setPlan(planId);
-            showPaymentNotification('success', 'Payment successful! Your ' + PLANS[planId].name + ' plan is now active.');
-            showToast('Welcome to ' + PLANS[planId].name + '!');
-          } else {
-            showToast('Payment verification failed. Please contact support.');
-            showPaymentNotification('cancel', 'Payment verification failed. If money was deducted, please contact support.');
-          }
-          resetCheckoutButtons();
-        })
-        .catch(function(err) {
-          showToast('Verification error: ' + err.message);
-          resetCheckoutButtons();
-        });
-      },
-      modal: {
-        ondismiss: function() {
-          showToast('Payment cancelled.');
-          resetCheckoutButtons();
-        }
-      }
-    };
-
-    var rzp = new Razorpay(options);
-    rzp.open();
-    resetCheckoutButtons(); // Reset the "Processing..." text since modal handles the flow
-  })
-  .catch(function(error) {
-    showToast('Checkout error: ' + error.message);
-    resetCheckoutButtons();
-  });
-}
-
-function resetCheckoutButtons() {
-  document.querySelectorAll('.checkout-btn').forEach(function(btn) {
-    var plan = btn.dataset.plan;
-    if (plan === 'free') {
-      btn.textContent = state.trialUsed ? 'Trial Used' : 'Start Free Trial';
-    } else {
-      btn.textContent = 'Subscribe';
-    }
-    btn.disabled = false;
-  });
-}
-
-// Update feature gating
-function canDownloadHD() {
-  return hasFeature('hd_export');
-}
-
-function canRemoveWatermark() {
-  return hasFeature('no_watermark');
-}
-
-function canUseVoiceover() {
-  return hasFeature('voiceover');
-}
-
-function canUseVideoAd() {
-  return hasFeature('video_ad');
-}
-
-function canUseShopify() {
-  return hasFeature('shopify');
-}
-
-function canUseWhatsApp() {
-  return hasFeature('whatsapp');
-}
-
-// Legacy compatibility
-function isPremiumUser() {
-  var plan = getPlan();
-  return plan === 'pro' || plan === 'premium';
-}
-
-// Update handlePaymentReturn for 4-tier plans
-// Razorpay uses modal-based flow, so URL redirect returns are minimal.
-// This is kept for backward compatibility only.
-function handlePaymentReturn() {
-  var urlParams = new URLSearchParams(window.location.search);
-  var paymentStatus = urlParams.get('payment');
-
-  if (paymentStatus === 'success') {
-    var planId = urlParams.get('plan') || 'basic';
-    setPlan(planId);
-    showPaymentNotification('success', 'Payment successful! Your ' + PLANS[planId].name + ' plan is now active.');
-    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-  } else if (paymentStatus === 'cancel') {
-    showPaymentNotification('cancel', 'Payment was cancelled. You can try again anytime.');
-    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-  }
-}
-
-function showPaymentNotification(type, message) {
-  var notification = document.getElementById('paymentNotification');
-  if (notification) {
-    notification.className = 'payment-notification ' + type;
-    notification.textContent = message;
-    notification.style.display = 'block';
-    setTimeout(function() { notification.style.display = 'none'; }, 8000);
-  }
-}
-
-// Update Plan UI
-function updatePlanUI() {
-  var plan = getPlan();
-  var badge = document.getElementById('premiumBadge');
-
-  if (badge) {
-    if (plan === 'premium') {
-      badge.textContent = 'PREMIUM';
-      badge.style.display = 'inline-block';
-    } else if (plan === 'pro') {
-      badge.textContent = 'PRO';
-      badge.style.display = 'inline-block';
-    } else if (plan === 'basic') {
-      badge.textContent = 'BASIC';
-      badge.style.display = 'inline-block';
-    } else {
-      badge.style.display = 'none';
-    }
-  }
-
-  // Update pricing card buttons
-  document.querySelectorAll('.checkout-btn').forEach(function(btn) {
-    var btnPlan = btn.dataset.plan;
-    if (btnPlan === plan) {
-      btn.textContent = 'Current Plan';
-      btn.disabled = true;
-      btn.classList.add('current-plan');
-    } else if (btnPlan === 'free' && state.trialUsed) {
-      btn.textContent = 'Trial Used';
-      btn.disabled = true;
-      btn.classList.add('current-plan');
-    } else {
-      btn.textContent = btnPlan === 'free' ? 'Start Free Trial' : 'Subscribe';
-      btn.disabled = false;
-      btn.classList.remove('current-plan');
-    }
-  });
-
-  // Show/hide pricing section based on plan
-  var pricingSection = document.getElementById('pricing-section');
-  if (pricingSection) {
-    pricingSection.style.display = 'block';
-  }
-
-  updateCreditDisplay();
-  updateMobileHeader();
-}
-function showUpgradePrompt(suggestedPlan) {
-  var planName = suggestedPlan ? PLANS[suggestedPlan].name : 'a paid plan';
-  showToast('This feature requires ' + planName + '. Upgrade now!', 'warning');
-  navigateTo('pricing');
-}
-
-// ===== PREMIUM FEATURE DEMOS (Plan-gated) =====
-function tryVoiceover() {
-  if (!isAuthenticated()) { showAuthModal(); return; }
-  if (!canUseVoiceover()) { showUpgradePrompt('pro'); return; }
-  var output = document.getElementById('vo-output');
-  output.style.display = 'block';
-  output.innerHTML = '<h3>Voiceover Demo</h3>' +
-    '<p style="color:var(--text-secondary);font-size:13px;line-height:1.8">' +
-    '<em>[AI Voiceover Simulation]</em>\n\n' +
-    '"Introducing the product that everyone\'s been waiting for... Imagine holding perfection in your hands. ' +
-    'Every detail crafted with care. Every feature designed for you. ' +
-    'This isn\'t just a product \u2014 it\'s a game changer. ' +
-    'Available now. Order today and experience the difference."\n\n' +
-    'Voice: Professional Female | Speed: 1.0x | Duration: ~15 sec\n' +
-    'Tone: Confident, Warm, Persuasive' +
-    '</p>';
-  showToast('Voiceover demo generated! (Pro feature)', 'info');
-}
-
-function tryVideoAd() {
-  if (!isAuthenticated()) { showAuthModal(); return; }
-  if (!canUseVideoAd()) { showUpgradePrompt('premium'); return; }
-  var output = document.getElementById('vac-output');
-  output.style.display = 'block';
-  output.innerHTML = '<h3>Video Ad Demo</h3>' +
-    '<p style="color:var(--text-secondary);font-size:13px;line-height:1.8">' +
-    '<em>[AI Video Ad Simulation]</em>\n\n' +
-    'SCENE 1 (0-2s): Fade in from black. Product hero shot with dramatic lighting.\n' +
-    'SCENE 2 (2-5s): Text overlay: "The Wait Is Over" with particle effects.\n' +
-    'SCENE 3 (5-10s): Product demo montage \u2014 3 quick cuts showing features.\n' +
-    'SCENE 4 (10-15s): Customer testimonial card with star rating.\n' +
-    'SCENE 5 (15-20s): Price reveal with countdown timer. CTA: "Shop Now"\n\n' +
-    'Resolution: 1080x1920 (9:16) | Format: MP4\n' +
-    'Music: Upbeat Corporate | Duration: 20s' +
-    '</p>';
-  showToast('Video ad demo generated! (Premium feature)', 'info');
-}
-
-function tryShopifyIntegration() {
-  if (!isAuthenticated()) { showAuthModal(); return; }
-  if (!canUseShopify()) { showUpgradePrompt('premium'); return; }
-  var output = document.getElementById('si-output');
-  output.style.display = 'block';
-  output.innerHTML = '<h3>Shopify &amp; Meesho Integration Demo</h3>' +
-    '<p style="color:var(--text-secondary);font-size:13px;line-height:1.8">' +
-    '<em>[Integration Simulation]</em>\n\n' +
-    'Connected Stores:\n' +
-    '  \u2705 Shopify: my-store.myshopify.com\n' +
-    '  \u2705 Meesho: meesho.com/seller/my-shop\n\n' +
-    'Sync Status:\n' +
-    '  \u2022 ' + state.products.length + ' products synced\n' +
-    '  \u2022 Last sync: ' + new Date().toLocaleString() + '\n' +
-    '  \u2022 Inventory: Real-time sync enabled\n\n' +
-    'Actions Available:\n' +
-    '  \u2022 Push new products to store\n' +
-    '  \u2022 Update prices across platforms\n' +
-    '  \u2022 Sync inventory levels\n' +
-    '  \u2022 Import orders for fulfillment' +
-    '</p>';
-  showToast('Shopify/Meesho integration demo! (Premium feature)', 'info');
-}
-
-function tryWhatsAppIntegration() {
-  if (!isAuthenticated()) { showAuthModal(); return; }
-  if (!canUseWhatsApp()) { showUpgradePrompt('premium'); return; }
-  var output = document.getElementById('wa-output');
-  output.style.display = 'block';
-  output.innerHTML = '<h3>WhatsApp Integration Demo</h3>' +
-    '<p style="color:var(--text-secondary);font-size:13px;line-height:1.8">' +
-    '<em>[WhatsApp Business API Simulation]</em>\n\n' +
-    'Connected: WhatsApp Business\n' +
-    'Phone: +91 98765 43210\n\n' +
-    'Broadcast Templates:\n' +
-    '  New Product Alert\n' +
-    '  Flash Sale Notification\n' +
-    '  Order Confirmation\n' +
-    '  Delivery Update\n\n' +
-    'Quick Actions:\n' +
-    '  \u2022 Send catalog to customer\n' +
-    '  \u2022 Broadcast sale alert to ' + state.leads.length + ' leads\n' +
-    '  \u2022 Auto-reply to inquiries\n' +
-    '  \u2022 Share payment links' +
-    '</p>';
-  showToast('WhatsApp integration demo! (Premium feature)', 'info');
 }
 
 // ===== MOBILE DRAWER & HEADER =====
@@ -3152,15 +2715,10 @@ function updateMobileHeader() {
   var avatarEl = document.getElementById('mobileAvatar');
 
   if (countEl) {
-    var plan = getPlan();
-    if (PLANS[plan] && PLANS[plan].credits === -1) {
-      countEl.textContent = '∞';
-    } else {
-      countEl.textContent = state.credits || 0;
-    }
+    countEl.textContent = state.credits || 0;
   }
   if (labelEl) {
-    labelEl.textContent = PLANS[getPlan()] ? PLANS[getPlan()].name : 'Free';
+    labelEl.textContent = CREDITS_PER_MONTH + '/mo';
   }
   if (avatarEl) {
     var user = firebase.auth() ? firebase.auth().currentUser : null;

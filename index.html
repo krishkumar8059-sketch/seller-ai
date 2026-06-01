@@ -19,7 +19,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="style.css">
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
 
@@ -37,15 +36,14 @@
       <div class="user-avatar" id="userAvatar"></div>
       <div class="user-info">
         <span class="user-name" id="userName"></span>
-        <span id="premiumBadge" class="premium-badge" style="display:none;">PRO</span>
       </div>
       <button class="btn btn-outline btn-sm sidebar-signout-btn" onclick="googleSignOut()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out</button>
     </div>
   </div>
   <div id="creditCounter" class="credit-counter">
     <span class="credit-icon">⚡</span>
-    <span id="creditCount">15</span> credits
-    <span id="planLabel" class="plan-label">Free Trial</span>
+    <span id="creditCount">30</span> credits
+    <span id="planLabel" class="plan-label">30/mo</span>
   </div>
   <nav class="sidebar-nav">
     <a href="#home" class="nav-item active" data-section="home">
@@ -66,12 +64,6 @@
     <a href="#business" class="nav-item" data-section="business">
       <i class="fa-solid fa-chart-line"></i><span>Business</span>
     </a>
-    <a href="#premium" class="nav-item" data-section="premium">
-      <i class="fa-solid fa-crown"></i><span>Premium</span>
-    </a>
-    <a href="#pricing" class="nav-item" data-section="pricing">
-      <i class="fa-solid fa-tag"></i><span>Pricing</span>
-    </a>
   </nav>
   <div class="sidebar-footer">
     <button class="theme-toggle" id="themeToggle" title="Toggle theme">
@@ -88,8 +80,8 @@
   <div class="mh-center">
     <div class="mh-credits">
       <span class="credit-icon">⚡</span>
-      <span id="mobileCreditCount">15</span>
-      <span class="mh-plan-label" id="mobilePlanLabel">Free</span>
+      <span id="mobileCreditCount">30</span>
+      <span class="mh-plan-label" id="mobilePlanLabel">30/mo</span>
     </div>
   </div>
   <div class="mh-right">
@@ -120,8 +112,6 @@
       <a href="#" class="drawer-item" data-section="design"><span class="di-icon">🎨</span> Design</a>
       <a href="#" class="drawer-item" data-section="platform"><span class="di-icon">📱</span> Platform</a>
       <a href="#" class="drawer-item" data-section="business"><span class="di-icon">📊</span> Business</a>
-      <a href="#" class="drawer-item" data-section="premium"><span class="di-icon">💎</span> Premium</a>
-      <a href="#" class="drawer-item" data-section="pricing"><span class="di-icon">💰</span> Pricing</a>
     </div>
     <div class="drawer-footer">
       <button id="drawerThemeToggle" class="drawer-action-btn">🌙 Dark Mode</button>
@@ -144,10 +134,6 @@
     <span class="bn-icon">🎨</span>
     <span class="bn-label">Create</span>
   </a>
-  <a href="#pricing" class="bn-item" data-section="pricing">
-    <span class="bn-icon">💰</span>
-    <span class="bn-label">Plans</span>
-  </a>
   <a href="#" class="bn-item" id="bnMenuBtn">
     <span class="bn-icon">☰</span>
     <span class="bn-label">Menu</span>
@@ -158,6 +144,13 @@
 <main class="main-content" id="mainContent">
 
   <div id="paymentNotification" class="payment-notification" style="display:none;"></div>
+
+  <!-- Credit Exhausted Message -->
+  <div id="creditExhaustedMsg" style="display:none;text-align:center;padding:24px;margin:16px 0;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;">
+    <i class="fa-solid fa-circle-exclamation" style="font-size:32px;color:#fdcb6e;margin-bottom:8px;"></i>
+    <p style="font-size:16px;font-weight:600;color:var(--text);margin:8px 0 4px;">Monthly credit limit reached.</p>
+    <p style="font-size:14px;color:var(--text-secondary);">Credits will reset next month.</p>
+  </div>
 
   <!-- HOME SECTION -->
   <section class="page-section active" id="section-home">
@@ -210,11 +203,6 @@
         <h3>Business Hub</h3>
         <p>Analytics, customer leads, product catalog management</p>
       </div>
-      <div class="feature-preview-card" onclick="navigateTo('premium')">
-        <div class="fpc-icon" style="background:linear-gradient(135deg,#e17055,#d63031)"><i class="fa-solid fa-crown"></i></div>
-        <h3>Premium & Future</h3>
-        <p>Unlimited AI, HD export, voiceover, integrations & more</p>
-      </div>
     </div>
   </section>
 
@@ -263,7 +251,7 @@
           <select id="pd-tone">
             <option value="professional">Professional</option>
             <option value="casual">Casual & Friendly</option>
-            <option value="luxury">Luxury & Premium</option>
+            <option value="luxury">Luxury</option>
             <option value="urgent">Urgent & Sales</option>
           </select>
         </div>
@@ -512,7 +500,7 @@
         <div class="fc-icon"><i class="fa-solid fa-image"></i></div>
         <div>
           <h2>AI Poster & Banner Maker</h2>
-          <p>Generate premium poster previews with templates, palettes, and text overlays</p>
+          <p>Generate high-quality poster previews with templates, palettes, and text overlays</p>
         </div>
       </div>
       <div class="feature-card-body">
@@ -1020,200 +1008,7 @@
     </div>
   </section>
 
-  <!-- PRICING SECTION -->
-  <section class="page-section" id="section-pricing">
-    <div class="section-header">
-      <h1><i class="fa-solid fa-tag"></i> Pricing</h1>
-      <p>Choose the plan that works best for you</p>
-    </div>
-
-    <!-- Pricing Section -->
-    <div id="pricing-section">
-      <!-- Billing Toggle -->
-      <div class="billing-toggle">
-        <button id="monthlyToggle" class="active" onclick="toggleBillingPeriod('monthly')">Monthly</button>
-        <button id="yearlyToggle" onclick="toggleBillingPeriod('yearly')">Yearly</button>
-      </div>
-
-      <div class="pricing-cards">
-        <!-- Free Trial Plan -->
-        <div class="pricing-card">
-          <div class="pricing-card-header">
-            <h3>Free Trial</h3>
-            <div class="pricing-amount">
-              <span class="currency">₹</span>0
-              <span class="period">/forever</span>
-            </div>
-          </div>
-          <ul class="pricing-features">
-            <li class="included highlight">15 credits (one-time)</li>
-            <li class="included">3 templates only</li>
-            <li class="included">Basic AI generation</li>
-            <li class="included">Watermarked downloads</li>
-            <li class="included">Cloud save</li>
-            <li class="excluded">No watermark downloads</li>
-            <li class="excluded">HD export quality</li>
-            <li class="excluded">AI voiceover</li>
-            <li class="excluded">Video ad creator</li>
-            <li class="excluded">Shopify & Meesho integration</li>
-            <li class="excluded">WhatsApp Business integration</li>
-            <li class="excluded">Priority support</li>
-          </ul>
-          <button class="checkout-btn" data-plan="free">Start Free Trial</button>
-        </div>
-
-        <!-- Basic Plan -->
-        <div class="pricing-card">
-          <div class="pricing-card-header">
-            <h3>Basic</h3>
-            <div class="pricing-amount">
-              <span class="price-monthly"><span class="currency">₹</span>249<span class="period">/mo</span></span>
-              <span class="price-yearly" style="display:none"><span class="currency">₹</span>1,099<span class="period">/yr</span></span>
-              <span class="save-badge">Save 63%</span>
-            </div>
-          </div>
-          <ul class="pricing-features">
-            <li class="included highlight">50 credits/month</li>
-            <li class="included">All templates</li>
-            <li class="included">Basic AI generation</li>
-            <li class="included">No watermark</li>
-            <li class="included">Cloud save</li>
-            <li class="excluded">HD export quality</li>
-            <li class="excluded">AI voiceover</li>
-            <li class="excluded">Video ad creator</li>
-            <li class="excluded">Shopify & Meesho integration</li>
-            <li class="excluded">WhatsApp Business integration</li>
-            <li class="excluded">Priority support</li>
-          </ul>
-          <button class="checkout-btn" data-plan="basic">Subscribe</button>
-        </div>
-
-        <!-- Pro Plan -->
-        <div class="pricing-card pro">
-          <div class="pricing-badge popular">Popular</div>
-          <div class="pricing-card-header">
-            <h3>Pro</h3>
-            <div class="pricing-amount">
-              <span class="price-monthly"><span class="currency">₹</span>899<span class="period">/mo</span></span>
-              <span class="price-yearly" style="display:none"><span class="currency">₹</span>1,299<span class="period">/yr</span></span>
-              <span class="save-badge">Save 88%</span>
-            </div>
-          </div>
-          <ul class="pricing-features">
-            <li class="included highlight">200 credits/month</li>
-            <li class="included">All templates</li>
-            <li class="included">Basic AI generation</li>
-            <li class="included">No watermark</li>
-            <li class="included">Cloud save</li>
-            <li class="included">HD export quality</li>
-            <li class="included">AI voiceover</li>
-            <li class="excluded">Video ad creator</li>
-            <li class="excluded">Shopify & Meesho integration</li>
-            <li class="excluded">WhatsApp Business integration</li>
-            <li class="excluded">Priority support</li>
-          </ul>
-          <button class="checkout-btn" data-plan="pro">Subscribe</button>
-        </div>
-
-        <!-- Premium Plan -->
-        <div class="pricing-card premium">
-          <div class="pricing-badge best-value">Best Value</div>
-          <div class="pricing-card-header">
-            <h3>Premium</h3>
-            <div class="pricing-amount">
-              <span class="price-monthly"><span class="currency">₹</span>1,499<span class="period">/mo</span></span>
-              <span class="price-yearly" style="display:none"><span class="currency">₹</span>7,999<span class="period">/yr</span></span>
-              <span class="save-badge">Save 56%</span>
-            </div>
-          </div>
-          <ul class="pricing-features">
-            <li class="included highlight">Unlimited credits</li>
-            <li class="included">All templates</li>
-            <li class="included">Basic AI generation</li>
-            <li class="included">No watermark</li>
-            <li class="included">Cloud save</li>
-            <li class="included">HD export quality</li>
-            <li class="included">AI voiceover</li>
-            <li class="included">Video ad creator</li>
-            <li class="included">Shopify & Meesho integration</li>
-            <li class="included">WhatsApp Business integration</li>
-            <li class="included">Priority support</li>
-          </ul>
-          <button class="checkout-btn" data-plan="premium">Subscribe</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- PREMIUM SECTION -->
-  <section class="page-section" id="section-premium">
-    <div class="section-header">
-      <h1><i class="fa-solid fa-crown"></i> Premium & Future Features</h1>
-      <p>Unlock unlimited power and get early access to upcoming features</p>
-    </div>
-
-    <!-- Premium Banner -->
-    <div class="premium-banner">
-      <div class="premium-badge">👑 PREMIUM</div>
-      <h2>Unlock the Full Power of ResellFlowAI</h2>
-      <p>Get unlimited AI generations, HD exports, watermark-free content, and early access to upcoming features.</p>
-      <button class="btn btn-premium btn-lg" id="premiumUpgradeBtn" onclick="navigateTo('pricing')">Upgrade to Premium</button>
-    </div>
-
-    <!-- Premium Features Grid -->
-    <div class="premium-features-grid">
-      <div class="premium-feature-card">
-        <div class="pfc-icon"><i class="fa-solid fa-infinity"></i></div>
-        <h3>Unlimited AI</h3>
-        <p>Generate unlimited product descriptions, ads, scripts, and more without any daily limits.</p>
-        <span class="pfc-badge">Premium</span>
-      </div>
-      <div class="premium-feature-card">
-        <div class="pfc-icon"><i class="fa-solid fa-droplet-slash"></i></div>
-        <h3>No Watermark</h3>
-        <p>Export all posters, banners, and designs without any ResellFlow watermark.</p>
-        <span class="pfc-badge">Premium</span>
-      </div>
-      <div class="premium-feature-card">
-        <div class="pfc-icon"><i class="fa-solid fa-high-definition"></i></div>
-        <h3>HD Export</h3>
-        <p>Download all generated images and designs in high definition for professional use.</p>
-        <span class="pfc-badge">Premium</span>
-      </div>
-      <div class="premium-feature-card">
-        <div class="pfc-icon"><i class="fa-solid fa-microphone"></i></div>
-        <h3>Voiceover Generator</h3>
-        <p>Add AI-generated voiceovers to your video scripts and ad content.</p>
-        <span class="pfc-badge coming-soon">Coming Soon</span>
-        <button class="btn btn-sm btn-outline" onclick="tryVoiceover()"><i class="fa-solid fa-play"></i> Try Demo</button>
-        <div class="output-area" id="vo-output" style="display:none"></div>
-      </div>
-      <div class="premium-feature-card">
-        <div class="pfc-icon"><i class="fa-solid fa-film"></i></div>
-        <h3>Video Ad Creator</h3>
-        <p>Create full video ads with motion graphics, transitions, and AI narration.</p>
-        <span class="pfc-badge coming-soon">Coming Soon</span>
-        <button class="btn btn-sm btn-outline" onclick="tryVideoAd()"><i class="fa-solid fa-play"></i> Try Demo</button>
-        <div class="output-area" id="vac-output" style="display:none"></div>
-      </div>
-      <div class="premium-feature-card">
-        <div class="pfc-icon"><i class="fa-solid fa-store"></i></div>
-        <h3>Shopify & Meesho Integration</h3>
-        <p>Sync your product catalog directly with Shopify and Meesho stores.</p>
-        <span class="pfc-badge coming-soon">Coming Soon</span>
-        <button class="btn btn-sm btn-outline" onclick="tryShopifyIntegration()"><i class="fa-solid fa-plug"></i> Try Demo</button>
-        <div class="output-area" id="si-output" style="display:none"></div>
-      </div>
-      <div class="premium-feature-card">
-        <div class="pfc-icon"><i class="fa-brands fa-whatsapp"></i></div>
-        <h3>WhatsApp Integration</h3>
-        <p>Send generated ads and catalogs directly to customers via WhatsApp Business API.</p>
-        <span class="pfc-badge coming-soon">Coming Soon</span>
-        <button class="btn btn-sm btn-outline" onclick="tryWhatsAppIntegration()"><i class="fa-solid fa-plug"></i> Try Demo</button>
-        <div class="output-area" id="wa-output" style="display:none"></div>
-      </div>
-    </div>
-  </section>
+  <!-- PRICING SECTION (removed — flat 30-credit/month system in place) -->
 
 </main>
 
